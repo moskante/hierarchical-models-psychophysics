@@ -6,7 +6,9 @@ library(DHARMa)
 library(rstan)
 library(shinystan)
 
-load("vibro_exp3.RData")
+# data are already in MixedPsy package. Alternatively can be loaded with:
+# set path befor
+# load("vibro_exp3.RData")
 
 # GLMM -----
 glmm_vibro <- glmer(cbind(faster, slower) ~ speed * vibration + (1+speed | subject),
