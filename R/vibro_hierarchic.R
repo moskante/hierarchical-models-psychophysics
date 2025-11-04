@@ -6,9 +6,7 @@ library(DHARMa)
 library(rstan)
 library(shinystan)
 
-# data are already in MixedPsy package. Alternatively can be loaded with:
-# set path befor
-# load("vibro_exp3.RData")
+# dataset vibro_exp3 is in the MixedPsy package. 
 
 # GLMM -----
 glmm_vibro <- glmer(cbind(faster, slower) ~ speed * vibration + (1+speed | subject),
@@ -18,7 +16,7 @@ glmm_vibro <- glmer(cbind(faster, slower) ~ speed * vibration + (1+speed | subje
 ## Residuals -----
 residuals_glmm_vibro <- residuals(glmm_vibro, type = "response")
 SSE_glmm_vibro <- sum(residuals_glmm_vibro^2)
-loglik_glmm_vibro <- as.numeric(logLik(glmm_vibro))
+#loglik_glmm_vibro <- as.numeric(logLik(glmm_vibro))
 
 simulatedRes_glmm_vibro <- simulateResiduals(fittedModel = glmm_vibro)
 
@@ -97,8 +95,7 @@ fitted_probs <- apply(posteriorPredDistr, 2, median)
 y_obs <- datistan$y
 trials <- datistan$n
 SSE_bhglm_vibro <- sum( (y_obs/trials - fitted_probs)^2 )
-loglik_vec <- dbinom(y_obs, size = trials, prob = fitted_probs, log = TRUE)
-loglik_bhglm_vibro <- sum(loglik_vec)
+
 
 ## DHARMa diagnostic ------
 sim_bhglm_vibro <- createDHARMa(
@@ -143,8 +140,6 @@ fitted_probs <- apply(posteriorPredDistr, 2, median)
 y_obs <- datistan$y
 trials <- datistan$n
 SSE_bhgnm_vibro <- sum( (y_obs/trials - fitted_probs)^2 )
-loglik_vec <- dbinom(y_obs, size = trials, prob = fitted_probs, log = TRUE)
-loglik_bhgnm_vibro <- sum(loglik_vec)
 
 ## DHARMa diagnostic ------
 sim_bhgnm_vibro <- createDHARMa(

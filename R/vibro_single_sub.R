@@ -2,7 +2,7 @@ library(tidyverse)
 library(MixedPsy)
 library(gnlm)
 
-load("vibro_exp3.RData")
+# dataset vibro_exp3 is in the MixedPsy package. 
 
 # GLM ----
 model_list_vibro <- PsychModels(vibro_exp3, 
@@ -24,7 +24,7 @@ params_glm_wider <- parameters_glm %>%
 t_glm_slope <-  t.test(params_glm_wider$slope_32, params_glm_wider$slope_0,paired = TRUE)
 
 # GNM ---- 
-source("gnlm_functions_slope.R")
+source("R/gnlm_functions_slope.R")
 parameters_gnm <- vibro_exp3 %>%
   group_split(subject, vibration) %>%
   map_dfr(process_subject_vibro)

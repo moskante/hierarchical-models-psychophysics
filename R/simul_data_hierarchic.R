@@ -6,7 +6,8 @@ library(DHARMa)
 library(rstan)
 library(shinystan)
 
-load("simul_data.RData") 
+set.seed(123)
+simul_data <- PsySimulate(ntrials = 160, nsubjects = 10, guess = TRUE, lapse = TRUE)
 
 # GLMM ----
 glmm <- glmer(cbind(Longer, Total-Longer) ~ X + (1+X|Subject), family = binomial(link = "probit"), data = simul_data)
@@ -14,7 +15,7 @@ glmm <- glmer(cbind(Longer, Total-Longer) ~ X + (1+X|Subject), family = binomial
 ## residuals ---
 residuals_glmm <- residuals(glmm, type = "response")
 SSE_glmm <- sum(residuals_glmm^2)
-loglik_glmm <- as.numeric(logLik(glmm))
+#loglik_glmm <- as.numeric(logLik(glmm))
 
 
 ## DHARMa diagnostic -----
@@ -65,11 +66,9 @@ fitted_probs <- apply(posteriorPredDistr, 2, median)
 y_obs <- datistan$y
 trials <- datistan$n
 SSE_bhglm <- sum( (y_obs/trials - fitted_probs)^2 )
-loglik_vec <- dbinom(y_obs, size = trials, prob = fitted_probs, log = TRUE)
-loglik_bhglm <- sum(loglik_vec)
-  
+
 ## DHARMa diagnostic ------
-sim_bhglm <- DHARMa::createDHARMa(
+sim_bhglm <- createDHARMa(
   simulatedResponse = t(posteriorPredSim),
   observedResponse = datistan$y,
   fittedPredictedResponse = apply(posteriorPredDistr, 2, median),
@@ -116,11 +115,9 @@ fitted_probs <- apply(posteriorPredDistr, 2, median)
 y_obs <- datistan$y
 trials <- datistan$n
 SSE_bhgnm <- sum( (y_obs/trials - fitted_probs)^2 )
-loglik_vec <- dbinom(y_obs, size = trials, prob = fitted_probs, log = TRUE)
-loglik_bhgnm <- sum(loglik_vec)
 
 ## DHARMa diagnostic ------
-sim_bhgnm <- DHARMa::createDHARMa(
+sim_bhgnm <- createDHARMa(
   simulatedResponse = t(posteriorPredSim),
   observedResponse = datistan$y,
   fittedPredictedResponse = apply(posteriorPredDistr, 2, median),
