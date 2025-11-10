@@ -52,8 +52,7 @@ transformed parameters {
     int s = subject[i];
     int v = vibration[i] + 1;
     mu[i] = alpha[s,v]+beta[s,v]*x[i];
-    //mu[i]=alpha[subject[i]]+x[i]*beta[subject[i]];
-    pi2[i]=(1 - fmin(gamma[s,v] + lambda[s,v], 0.999))* Phi(mu[i]);
+    pi2[i]=(1 - gamma[s,v] - lambda[s,v]) * Phi(mu[i]);
     pi1[i]=gamma[s,v]+pi2[i];
   }
 }

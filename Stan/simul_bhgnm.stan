@@ -34,8 +34,7 @@ transformed parameters{
   for (i in 1:nobs){
     int s = subject[i];
     mu[i] = -pse[s]/beta[s]+x[i]/beta[s];
-    //    pi2[i]=(1-gamma[subject[i]]-lambda[subject[i]])*Phi(mu[i]);
-    pi2[i]=(1 - fmin(gamma[s] + lambda[s], 0.999))* Phi(mu[i]);
+    pi2[i]=(1 - gamma[s] - lambda[s])* Phi(mu[i]);
     pi1[i]=gamma[s]+pi2[i];
   }
 }
