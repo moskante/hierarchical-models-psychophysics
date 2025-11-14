@@ -68,10 +68,10 @@ datistan$ncond=length(unique(datistan$vibration))
 detach(vibro_exp3)
 
 # BH-GLM ----
-init_fun <- function(init_alpha = -2, init_beta = 0.1) {
+init_fun <- function(init_b0 = -2, init_b1 = 0.1) {
   list(
-    alpha = matrix(init_alpha, datistan$nsubj, 2),
-    beta  = matrix(init_beta, datistan$nsubj, 2)
+    b_0 = matrix(init_b0, datistan$nsubj, 2),
+    b_1  = matrix(init_b1, datistan$nsubj, 2)
   )
 }
   
@@ -111,11 +111,11 @@ testOutliers(sim_bhglm_vibro)
 testQuantiles(sim_bhglm_vibro)
 
 # BH-GNM ------
-init_fun <- function(init_alpha = -2, init_beta = 0.1, 
+init_fun <- function(init_b0 = -2, init_b1 = 0.1, 
                      init_gamma = 0.01, init_lambda = 0.01) {
   list(
-    alpha = matrix(init_alpha, datistan$nsubj, 2),
-    beta  = matrix(init_beta, datistan$nsubj, 2),
+    b_0 = matrix(init_b0, datistan$nsubj, 2),
+    b_1  = matrix(init_b1, datistan$nsubj, 2),
     gamma  = matrix(init_gamma, datistan$nsubj, 2),
     lambda  = matrix(init_lambda, datistan$nsubj, 2)
   )

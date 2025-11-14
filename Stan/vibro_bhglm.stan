@@ -12,16 +12,16 @@ data {
 
 parameters {
   // Hyperparameters
-  vector[2] aa;             // mean of alpha by vibration
-  vector[2] bb;             // mean of beta by vibration
-  real<lower=0> tauaa;      // SD for aa
-  real<lower=0> taubb;      // SD for bb
-  real<lower=0> taua;       // subject-level SDs for alpha
-  real<lower=0> taub;       // subject-level SDs for beta
+  vector[2] beta_0;             // mean of alpha by vibration
+  vector[2] beta_1;             // mean of beta by vibration
+  real<lower=0> tau_beta0;      // SD for aa
+  real<lower=0> tau_beta1;      // SD for bb
+  real<lower=0> tau_b0;       // subject-level SDs for alpha
+  real<lower=0> tau_b1;       // subject-level SDs for beta
   
   // Subject-level parameters
-  matrix[nsubj, 2] alpha;
-  matrix[nsubj, 2] beta;
+  matrix[nsubj, 2] b_0;
+  matrix[nsubj, 2] b_1;
 }
 
 transformed parameters {
@@ -32,24 +32,24 @@ transformed parameters {
   vector[2] PSE;
   vector[2] JND;
   for (h in 1:2) {
-    PSE[h] = -aa[h]/bb[h]; 
-    JND[h]  = 0.6745/bb[h];        
+    PSE[h] = -beta_0[h]/beta_1[h]; 
+    JND[h]  = 0.6745/beta_1[h];        
   }
   real diffPSE = PSE[2] - PSE[1];
   real diffJND = JND[2] - JND[1];
-  real diffSlope = bb[2] - bb[1];
+  real diffSlope = beta_1[2] - beta_1[1];
   
   for (i in 1:nsubj) {
     for (h in 1:2) {
-      pse[i, h] = -alpha[i, h]/beta[i, h]; 
-      jnd[i, h]  = 0.6745/beta[i, h];        
+      pse[i, h] = -b_0[i, h]/b_1[i, h]; 
+      jnd[i, h]  = 0.6745/b_1[i, h];        
     }
   }
   
   for (i in 1:nobs){
     int s = subject[i];
     int v = vibration[i] + 1;
-    mu[i] = alpha[s,v]+beta[s,v]*x[i];
+    mu[i] = b_0[s,v]+b_1[s,v]*x[i];
     pi1[i]= Phi(mu[i]);
   }
 }
@@ -57,17 +57,17 @@ transformed parameters {
 model {
   for (i in 1:nsubj){
     for (h in 1:2){
-      alpha[i,h] ~ normal(aa[h], taua);
-      beta[i,h] ~ normal(bb[h], taub);}
+      b_0[i,h] ~ normal(beta_0[h], tau_b0);
+      b_1[i,h] ~ normal(beta_1[h], tau_b1);}
   }
-  taua~cauchy(0,2.5);
-  taub~cauchy(0,2.5);
+  tau_b0 ~ cauchy(0,2.5);
+  tau_b1 ~ cauchy(0,2.5);
   
-  tauaa~cauchy(0,2.5);
-  taubb~cauchy(0,2.5);
+  tau_beta0 ~ cauchy(0,2.5);
+  tau_beta1 ~ cauchy(0,2.5);
   
-  aa ~ normal(0, tauaa);
-  bb ~ normal(0, taubb);
+  beta_0 ~ normal(0, tau_beta0);
+  beta_1 ~ normal(0, tau_beta1);
   
   for (i in 1:nobs){
     y[i] ~ binomial(n[i],pi1[i]);
