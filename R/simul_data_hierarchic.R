@@ -42,10 +42,10 @@ datistan$ncond=length(unique(datistan$condition))
 
 
 # BH-GLM ----
-init_fun <- function(init_pse = 90, init_beta = 15) {
+init_fun <- function(init_pse = 90, init_sigma = 15) {
   list(
     pse = rep(init_pse, datistan$nsubj),
-    beta  = rep(init_beta, datistan$nsubj))}
+    sigma  = rep(init_sigma, datistan$nsubj))}
 
 fit_bhglm <- stan(
   file = "Stan/simul_bhglm.stan",  
@@ -83,11 +83,11 @@ testQuantiles(sim_bhglm)
 
 
 # BH-GNM ----
-init_fun <- function(init_pse = 90, init_beta = 15,
+init_fun <- function(init_pse = 90, init_sigma = 15,
                      init_gamma = 0.01, init_lambda = 0.01) {
   list(
     pse = rep(init_pse, datistan$nsubj),
-    beta  = rep(init_beta, datistan$nsubj),
+    sigma  = rep(init_sigma, datistan$nsubj),
     gamma  = rep(init_gamma, datistan$nsubj),
     lambda  = rep(init_lambda, datistan$nsubj)
   )
