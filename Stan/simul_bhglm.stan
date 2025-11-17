@@ -1,16 +1,17 @@
 data {
-  int<lower=0> nobs;
-  int<lower=0> nsubj;
-  int<lower=0> n[nobs];
-  int subject[nobs];          
-  array[nobs] int<lower=0> y;
-  real x[nobs];
+  int<lower=0> nobs;          //number of observation
+  int<lower=0> nsubj;         //number of sujects
+  int<lower=0> n[nobs];       //number of trials for each condition (x) and subject
+  int subject[nobs];          //subject id          
+  array[nobs] int<lower=0> y; // number of successes for each condition (x) and subject
+  real x[nobs];               // condition (x)
 }
+
 parameters {
-  real PSE;
-  real SIGMA;
   real pse[nsubj];
   real sigma[nsubj];
+  real PSE;
+  real SIGMA;
   real<lower=0> tau_pse;
   real<lower=0> tau_sigma;
   real<lower=0> tau_PSE;
@@ -28,25 +29,28 @@ transformed parameters{
   }
   for (i in 1:nobs){
     int s = subject[i];
-    mu[i] = -pse[s]/sigma[s]+x[i]/sigma[s];
-    pi1[i]= Phi(mu[i]);
+    PI[i]= Phi(-pse[s]/sigma[s]+x[i]/sigma[s]);
   }
 }
 
 model {
-  
+  // Priors
   PSE ~ normal(0, tau_PSE);
   SIGMA ~ normal(0, tau_SIGMA);
+  
+  // Hyperpriors
   tau_pse ~ cauchy(0,2.5);
   tau_sigma ~ cauchy(0,2.5);
   tau_PSE ~ cauchy(0,2.5);
   tau_SIGMA ~ cauchy(0,2.5);
-    
+  
+  // Hyerarchical structure  
   for (i in 1:nsubj){
     pse[i] ~ normal(PSE, tau_pse);
     sigma[i] ~ normal(SIGMA, tau_sigma);
   }
   
+  // Likelihood
   for (i in 1:nobs){
     y[i] ~ binomial(n[i],pi1[i]);
   }
