@@ -19,14 +19,14 @@ parameters {
 }
 
 transformed parameters{
-  real mu[nobs]; 
-  real<lower=0, upper=1> pi1[nobs];
+  real<lower=0, upper=1> PI[nobs];
   real jnd[nsubj];
   real JND = 0.6745*SIGMA;
   
   for (i in 1:nsubj){
     jnd[i] = 0.6745*sigma[i];
   }
+  
   for (i in 1:nobs){
     int s = subject[i];
     PI[i]= Phi(-pse[s]/sigma[s]+x[i]/sigma[s]);
@@ -61,8 +61,8 @@ generated quantities {
   int y_sim[nobs];      // posterior predictive simulations
   
   for (i in 1:nobs) {
-    predProb[i] = pi1[i]; // mean prediction for DHARMa
-    y_sim[i] = binomial_rng(n[i], pi1[i]); // simulated observation
+    predProb[i] = PI[i]; // mean prediction for DHARMa
+    y_sim[i] = binomial_rng(n[i], PI[i]); // simulated observation
   }
 }
 

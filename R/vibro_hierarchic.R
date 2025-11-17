@@ -70,8 +70,8 @@ detach(vibro_exp3)
 # BH-GLM ----
 init_fun <- function(init_b0 = -2, init_b1 = 0.1) {
   list(
-    b_0 = matrix(init_b0, datistan$nsubj, 2),
-    b_1  = matrix(init_b1, datistan$nsubj, 2)
+    b0 = matrix(init_b0, datistan$nsubj, 2),
+    b1  = matrix(init_b1, datistan$nsubj, 2)
   )
 }
   
@@ -114,8 +114,8 @@ testQuantiles(sim_bhglm_vibro)
 init_fun <- function(init_b0 = -2, init_b1 = 0.1, 
                      init_gamma = 0.01, init_lambda = 0.01) {
   list(
-    b_0 = matrix(init_b0, datistan$nsubj, 2),
-    b_1  = matrix(init_b1, datistan$nsubj, 2),
+    b0 = matrix(init_b0, datistan$nsubj, 2),
+    b1  = matrix(init_b1, datistan$nsubj, 2),
     gamma  = matrix(init_gamma, datistan$nsubj, 2),
     lambda  = matrix(init_lambda, datistan$nsubj, 2)
   )

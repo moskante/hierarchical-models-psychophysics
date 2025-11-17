@@ -65,8 +65,8 @@ generated quantities {
   int y_sim[nobs];      // posterior predictive simulations
 
   for (i in 1:nobs) {
-    predProb[i] = pi1[i]; // mean prediction for DHARMa
-    y_sim[i] = binomial_rng(n[i], pi1[i]); // simulated observation
+    predProb[i] = PI[i]; // mean prediction for DHARMa
+    y_sim[i] = binomial_rng(n[i], PI[i]); // simulated observation
   }
 }
 
