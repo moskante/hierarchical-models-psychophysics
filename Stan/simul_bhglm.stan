@@ -52,7 +52,7 @@ model {
   
   // Likelihood
   for (i in 1:nobs){
-    y[i] ~ binomial(n[i],pi1[i]);
+    y[i] ~ binomial(n[i],PI[i]);
   }
 }
 
