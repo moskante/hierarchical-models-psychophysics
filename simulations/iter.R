@@ -27,6 +27,7 @@ library(MixedPsy)
 library(lme4)
 library(lmerTest)
 library(rstan)
+library(gnlm)
 
 source("R/gnlm_functions_psejnd.R")   # defines process_subject() for GNM fitting
 
@@ -35,13 +36,13 @@ source("R/gnlm_functions_psejnd.R")   # defines process_subject() for GNM fittin
 # across n_iter independent simulated datasets.
 # ============================================================
 
-n_target  <- 3    # exact number of successful iterations required per method
+n_target  <- 3    # number of successful iterations required per method
 ntrials   <- 160
 nsubjects <- 10
 run_stan  <- TRUE   # set FALSE for quick GLM/GNM/GLMM-only runs
 
-# Compile Stan models once at the start; the compiled objects are reused
-# across all iterations to avoid repeated (slow) compilation.
+# Compile Stan models once at the start to avoid repeated (slow) compilation.
+
 if (run_stan) {
   stan_bhglm <- stan_model(file = "Stan/simul_bhglm.stan")
   stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm.stan")
@@ -76,8 +77,7 @@ simulate_dataset <- function() {
                                     guess     = TRUE,
                                     lapse     = TRUE)
   simul_data$Subject <- factor(simul_data$Subject)
-  # Recover the true per-subject PSE and JND from the generating parameters
-  # stored by PsySimulate() in each row (first row per subject is sufficient).
+  # Recover the true per-subject PSE and JND from the generating parameters.
   params_true <- simul_data %>%
     group_by(Subject) %>%
     summarise(across(everything(), first),
@@ -100,7 +100,7 @@ fit_GLM <- function(iter, simul_data, true_PSE, true_JND) {
                               data = simul_data,
                               group_factors = "Subject")
     params_glm <- PsychParameters(glm_list)
-    # One-sample t-tests against the true generating mean (Type I error assessment)
+    # One-sample t-tests against the true generating mean 
     t_pse      <- t.test(params_glm$pse,  mu = true_PSE)
     t_jnd      <- t.test(params_glm$jnd,  mu = true_JND)
     tibble(iter = iter, method = "GLM",
@@ -199,7 +199,7 @@ iter_counter <- 0L   # global attempt counter for labelling
 
 while (any(n_done < n_target)) {
   
-  # Draw a fresh dataset for this attempt
+  # Draw a fresh dataset 
   sim        <- simulate_dataset()
   simul_data <- sim$data
   true_PSE   <- sim$true_PSE
@@ -271,8 +271,8 @@ print(summary_table)
 # ============================================================
 # Save outputs
 # ============================================================
-#write_csv(results,       "simulation_loop_results.csv")
-#write_csv(summary_table, "simulation_loop_summary.csv")
+write_csv(results,       "simulation_loop_results.csv")
+write_csv(summary_table, "simulation_loop_summary.csv")
 
 # ============================================================
 # Plots
@@ -449,6 +449,6 @@ fig_sse <- results %>%
     plot.subtitle      = element_text(size = 10, colour = "grey40")
   )
 
-#ggsave("figure_sse_boxplot.pdf", fig_sse, width = 6, height = 5)
+ggsave("figure_sse_boxplot.pdf", fig_sse, width = 6, height = 5)
 
-#message("Saved: figure_sse_boxplot.pdf / .png")
+message("Saved: figure_sse_boxplot.pdf / .png")
