@@ -1,7 +1,7 @@
 # gnlm_functions_psejnd.R
 #
 # GNM (Generalised Nonlinear Model) helper functions for fitting psychometric
-# functions and extracting PSE and JND.
+# functions and extracting PSE and JND. Used in manuscript for simulated data (Example 1).
 #
 # The psychometric function used here is the cumulative normal (probit) with
 # two extra free parameters:
@@ -14,7 +14,7 @@
 #   P(x) = gamma + (1 - gamma - lambda) * Phi((x - mu) / sigma)
 #
 # where Phi is the standard normal CDF, mu is the PSE, and sigma is the
-# spread (inversely related to the slope / JND).
+# standard deviation (inversely related to the slope of the function).
 #
 # NOTE: the variable `x` (stimulus levels for the current subject) must exist
 # in the calling environment before gnlr() is called, because gnlr() evaluates
@@ -31,7 +31,7 @@
 # ---------------------------------------------------------------------------
 mu <- function(p){
   mu_i    <- p[1]   # PSE (location parameter, same units as x)
-  sigma_i <- p[2]   # spread (sigma of the underlying normal; JND = qnorm(0.75)*sigma)
+  sigma_i <- p[2]   # sigma of the underlying normal; JND = qnorm(0.75)*sigma
   # Back-transform guessing and lapse parameters from unconstrained scale
   gamma_i  <- atan2(p[3], 1) / pi + 0.5
   lambda_i <- (1 - gamma_i) * (atan2(p[4], 1) / pi + 0.5)
@@ -56,7 +56,7 @@ pstart <- function(x, y){
   gamma_i_start   <- min(min(prop_correct, na.rm = TRUE), 0.99)
   # Lapse rate start: distance of maximum observed proportion from 1
   lambda_i_start  <- max(1 - max(prop_correct, na.rm = TRUE), 0.01)
-  mu_i_start      <- -coef_start[1] / coef_start[2]   # PSE from GLM intercept/slope
+  mu_i_start      <- -coef_start[1] / coef_start[2]   # PSE from GLM -intercept/slope
   sigma_i_start   <- 1 / coef_start[2]                # spread from GLM slope
   # Transform gamma and lambda to unconstrained p3/p4 starting values
   p3_start <- tan(pi * (gamma_i_start - 0.5))
@@ -118,7 +118,6 @@ process_subject <- function(sub_data) {
   y <- with(sub_data, cbind(Longer, Total - Longer))
   # Expose stimulus values to the global environment for mu() evaluation
   x <- assign("x", sub_data$X, envir = .GlobalEnv)
-
   pmu <- pstart(x, y)
 
   # Fit the GNM to point estimates

@@ -10,7 +10,7 @@
 #
 # Relationship between parameterisations:
 #   mu    (PSE)   = -beta_0 / beta_1
-#   sigma (spread) = 1 / beta_1
+#   sigma         = 1 / beta_1
 #   JND           = qnorm(0.75) / beta_1
 #
 # As in gnlm_functions_psejnd.R, gamma (guessing) and lambda (lapsing) are

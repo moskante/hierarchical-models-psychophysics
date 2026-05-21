@@ -7,16 +7,21 @@ R scripts, Stan files, and data for the article:
 
 ## Overview
 
-This repository accompanies the paper and provides a fully reproducible comparison of four statistical frameworks for analyzing psychophysical data:
+This repository accompanies the paper: ``Modeling Psychophysical Data in R: A Comparative Study of Four Model Frameworks'' and provides scripts for analyzing psychophysical data using the statistical frameworks described:
 
-| Model | Type | Script |
+| Model | Type | Scripts (R folder) |
 |-------|------|--------|
 | GLM | Generalized Linear Model (single-subject) | `simul_data_single_sub.R`, `vibro_single_sub.R` |
-| GNM | Generalized Nonlinear Model (guessing + lapsing) | `simul_data_single_sub.R`, `vibro_single_sub.R` |
+| GNM | Generalized Nonlinear Model (single-subject, guessing + lapsing) | `simul_data_single_sub.R`, `vibro_single_sub.R` |
 | GLMM | Generalized Linear Mixed Model (hierarchical, frequentist) | `simul_data_hierarchic.R`, `vibro_hierarchic.R` |
-| BH-GLM / BH-GNM | Bayesian Hierarchical GLM and GNM | `simul_data_hierarchic.R`, `vibro_hierarchic.R` |
+| BH-GLM / BH-GNM | Bayesian Hierarchical GLM and GNM (guessing + lapsing) | `simul_data_hierarchic.R`, `vibro_hierarchic.R`, `ADD:BRMS` |
 
-The key outcome measures are the **Point of Subjective Equality (PSE)** — the stimulus intensity at which both comparison stimuli are judged equally likely — and the **Just Noticeable Difference (JND)** — an index of discrimination sensitivity derived from the psychometric function slope.
+The R folder includes scripts for gnm utilities. 
+The Stan models used in `simul_data_hierarchic.R`, `vibro_hierarchic.R` are in the Stan folder. 
+In addition, simulation folder includes code for reproducing analysis on simulated data included in manuscript. 
+
+
+The key outcome measures for all models are the **Point of Subjective Equality (PSE)** — the stimulus intensity at which both comparison stimuli are judged equally likely — and the **Just Noticeable Difference (JND)** — an index of discrimination sensitivity derived from the psychometric function slope.
 
 ---
 

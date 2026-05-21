@@ -35,7 +35,7 @@ source("R/gnlm_functions_psejnd.R")   # defines process_subject() for GNM fittin
 # across n_iter independent simulated datasets.
 # ============================================================
 
-n_target  <- 150    # exact number of successful iterations required per method
+n_target  <- 3    # exact number of successful iterations required per method
 ntrials   <- 160
 nsubjects <- 10
 run_stan  <- TRUE   # set FALSE for quick GLM/GNM/GLMM-only runs
@@ -271,8 +271,8 @@ print(summary_table)
 # ============================================================
 # Save outputs
 # ============================================================
-write_csv(results,       "simulation_loop_results.csv")
-write_csv(summary_table, "simulation_loop_summary.csv")
+#write_csv(results,       "simulation_loop_results.csv")
+#write_csv(summary_table, "simulation_loop_summary.csv")
 
 # ============================================================
 # Plots
@@ -449,6 +449,6 @@ fig_sse <- results %>%
     plot.subtitle      = element_text(size = 10, colour = "grey40")
   )
 
-ggsave("figure_sse_boxplot.pdf", fig_sse, width = 6, height = 5)
+#ggsave("figure_sse_boxplot.pdf", fig_sse, width = 6, height = 5)
 
-message("Saved: figure_sse_boxplot.pdf / .png")
+#message("Saved: figure_sse_boxplot.pdf / .png")
