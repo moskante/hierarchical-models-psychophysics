@@ -14,11 +14,11 @@ This repository accompanies the paper: ``Modeling Psychophysical Data in R: A Co
 | GLM | Generalized Linear Model (single-subject) | `simul_data_single_sub.R`, `vibro_single_sub.R` |
 | GNM | Generalized Nonlinear Model (single-subject, guessing + lapsing) | `simul_data_single_sub.R`, `vibro_single_sub.R` |
 | GLMM | Generalized Linear Mixed Model (hierarchical, frequentist) | `simul_data_hierarchic.R`, `vibro_hierarchic.R` |
-| BH-GLM / BH-GNM | Bayesian Hierarchical GLM and GNM (guessing + lapsing) | `simul_data_hierarchic.R`, `vibro_hierarchic.R`, `ADD:BRMS` |
+| BH-GLM / BH-GNM | Bayesian Hierarchical GLM and GNM (guessing + lapsing) | `simul_data_hierarchic.R`, `vibro_hierarchic.R` |
 
-The R folder includes scripts for gnm utilities. 
-The Stan models used in `simul_data_hierarchic.R`, `vibro_hierarchic.R` are in the Stan folder. 
-In addition, simulation folder includes code for reproducing analysis on simulated data included in manuscript. 
+The `R/` folder includes scripts for gnm utilities. 
+The Stan models used in `simul_data_hierarchic.R`, `vibro_hierarchic.R` are in the `Stan/` folder. 
+The `simulations/` folder includes code for reproducing analysis on simulated data included in manuscript. 
 
 
 The key outcome measures for all models are the **Point of Subjective Equality (PSE)** — the stimulus intensity at which both comparison stimuli are judged equally likely — and the **Just Noticeable Difference (JND)** — an index of discrimination sensitivity derived from the psychometric function slope.
@@ -56,6 +56,8 @@ R/
   simul_data_hierarchic.R   # Example 1b: GLMM, BH-GLM, BH-GNM on simulated data
   vibro_single_sub.R        # Example 2a: GLM and GNM on vibrotactile data
   vibro_hierarchic.R        # Example 2b: GLMM, BH-GLM, BH-GNM on vibrotactile data
+  
+simulations/
   iter.R                    # Monte Carlo simulation: cross-method comparison
 
 Stan/
@@ -69,7 +71,7 @@ Stan/
 
 ## How to Use
 
-### Step 1 — Single-subject analysis (simulated data)
+### Single-subject analysis (simulated data)
 
 Run `R/simul_data_single_sub.R` to fit GLM and GNM models subject-by-subject on simulated psychophysical data. This script:
 
@@ -78,7 +80,7 @@ Run `R/simul_data_single_sub.R` to fit GLM and GNM models subject-by-subject on 
 3. Fits a **GNM** to each subject using `gnlm_functions_psejnd.R` (accounts for guessing and lapsing).
 4. Tests whether estimated PSE and JND differ from the true generating values (one-sample *t*-tests).
 
-### Step 2 — Hierarchical analysis (simulated data)
+### Hierarchical analysis (simulated data)
 
 Run `R/simul_data_hierarchic.R` to fit hierarchical models on the same simulated data. This script:
 
@@ -89,7 +91,7 @@ Run `R/simul_data_hierarchic.R` to fit hierarchical models on the same simulated
 
 > **Note:** The Stan models require `Stan/simul_bhglm.stan` and `Stan/simul_bhgnm.stan` to be compiled on first run. Compilation may take a few minutes.
 
-### Step 3 — Single-subject analysis (vibrotactile data)
+### Single-subject analysis (vibrotactile data)
 
 Run `R/vibro_single_sub.R` to apply GLM and GNM models to the real `vibro_exp3` dataset. This script:
 
@@ -98,7 +100,7 @@ Run `R/vibro_single_sub.R` to apply GLM and GNM models to the real `vibro_exp3` 
 3. Fits a **GNM** using `gnlm_functions_slope.R` (slope-parameterized variant with CI from 500 bootstrap replicates).
 4. Tests whether vibration affects discrimination slope (paired *t*-tests: 32 Hz vs. 0 Hz).
 
-### Step 4 — Hierarchical analysis (vibrotactile data)
+### Hierarchical analysis (vibrotactile data)
 
 Run `R/vibro_hierarchic.R` to fit hierarchical models to the vibrotactile data. This script:
 
@@ -107,18 +109,13 @@ Run `R/vibro_hierarchic.R` to fit hierarchical models to the vibrotactile data. 
 3. Runs **BH-GLM** and **BH-GNM** in Stan (`Stan/vibro_bhglm.stan`, `Stan/vibro_bhgnm.stan`).
 4. Validates each model with DHARMa residual diagnostics.
 
-### Step 5 — Monte Carlo simulation study
+### Monte Carlo simulation study
 
-Run `R/iter.R` to reproduce the cross-method comparison reported in the paper. This script:
+Run `simulations/iter.R` to reproduce the cross-method comparison reported in the paper. This script:
 
 1. Repeatedly simulates new datasets and fits all five models (GLM, GNM, GLMM, BH-GLM, BH-GNM).
 2. Collects exactly 150 successful fits per method (failed fits are retried on a new dataset).
 3. Computes bias, RMSE, and Type I error rates relative to the true generating parameters.
-4. Saves results to `simulation_loop_results.csv` and `simulation_loop_summary.csv`.
-5. Generates three publication-quality figures:
-   - `figure_violin_pse_jnd.pdf` — parameter recovery distributions
-   - `figure_density_error.pdf` — estimation error densities
-   - `figure_sse_boxplot.pdf` — model fit (SSE) comparison
 
 > Set `run_stan <- FALSE` at the top of `iter.R` to skip the Bayesian models for a quick GLM/GNM/GLMM-only run.
 
@@ -132,17 +129,6 @@ Run `R/iter.R` to reproduce the cross-method comparison reported in the paper. T
 
 ---
 
-## Output Files
-
-| File | Description |
-|------|-------------|
-| `simulation_loop_results.csv` | Per-iteration estimates (PSE, JND, t-statistics, SSE) for all methods |
-| `simulation_loop_summary.csv` | Aggregated bias, RMSE, SSE, and Type I error rates per method |
-| `figure_violin_pse_jnd.pdf` | Violin + boxplot of estimated PSE and JND across iterations |
-| `figure_density_error.pdf` | Density curves of estimation error (estimated − true) |
-| `figure_sse_boxplot.pdf` | Boxplot of SSE for hierarchical models (GLMM, BH-GLM, BH-GNM) |
-
----
 
 ## Reference
 

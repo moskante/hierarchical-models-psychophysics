@@ -1,9 +1,6 @@
-# iter.R
-#
 # Monte Carlo simulation study: cross-method comparison of GLM, GNM, GLMM,
 # BH-GLM, and BH-GNM on independently simulated psychophysical datasets.
 #
-# Design:
 #   Each iteration draws a fresh dataset, fits all five models, and records
 #   estimated PSE and JND for each. The loop continues until exactly n_target
 #   *successful* fits have been collected per method. If a method fails on a
@@ -11,16 +8,7 @@
 #   outer while loop draws a new dataset and retries only the failing methods.
 #   This ensures balanced comparison without biasing results by discarding
 #   entire iterations when only one method fails.
-#
-# Outputs:
-#   simulation_loop_results.csv  -- per-iteration estimates (one row per method)
-#   simulation_loop_summary.csv  -- bias, RMSE, SSE, Type I error per method
-#   figure_violin_pse_jnd.pdf    -- parameter recovery distributions
-#   figure_density_error.pdf     -- estimation error densities
-#   figure_sse_boxplot.pdf       -- SSE distributions (hierarchical models only)
-#
-# Required packages: tidyverse, MixedPsy, lme4, lmerTest, rstan, patchwork
-# Source file:       R/gnlm_functions_psejnd.R
+
 
 library(tidyverse)
 library(MixedPsy)
@@ -36,7 +24,7 @@ source("R/gnlm_functions_psejnd.R")   # defines process_subject() for GNM fittin
 # across n_iter independent simulated datasets.
 # ============================================================
 
-n_target  <- 3    # number of successful iterations required per method
+n_target  <- 150    # number of successful iterations required per method
 ntrials   <- 160
 nsubjects <- 10
 run_stan  <- TRUE   # set FALSE for quick GLM/GNM/GLMM-only runs
@@ -268,187 +256,3 @@ summary_table <- results %>%
 
 print(summary_table)
 
-# ============================================================
-# Save outputs
-# ============================================================
-write_csv(results,       "simulation_loop_results.csv")
-write_csv(summary_table, "simulation_loop_summary.csv")
-
-# ============================================================
-# Plots
-# ============================================================
-
-# Violin plots of estimated PSE and JND per model across simulation iterations.
-# Horizontal reference line = population parameters used for data generation.
-
-ref_PSE <- 80
-ref_JND <- 7.7
-
-# ---- Method factor order (simple -> hierarchical) -------------
-method_order <- c("GLM", "GNM", "GLMM", "BH-GLM", "BH-GNM")
-
-results <- results %>%
-  mutate(method = factor(method, levels = method_order))
-
-# ---- Palette ------------------------------------------------------
-method_colours <- c(
-  "GLM"    = "#4E79A7",
-  "GNM"    = "#F28E2B",
-  "GLMM"   = "#59A14F",
-  "BH-GLM" = "#B07AA1",
-  "BH-GNM" = "#E15759"
-)
-
-# ---- Shared theme -------------------------------------------------
-violin_theme <- theme_classic(base_size = 12) +
-  theme(
-    strip.background  = element_blank(),
-    strip.text        = element_text(size = 13, face = "bold"),
-    axis.title.x      = element_blank(),
-    legend.position   = "none",
-    panel.grid.major.y = element_line(colour = "grey92", linewidth = 0.4)
-  )
-
-# ================================================================
-# Panel A – PSE
-# ================================================================
-p_pse <- ggplot(results, aes(x = method, y = mean_pse, fill = method)) +
-  geom_hline(yintercept = ref_PSE,
-             linetype = "dashed", linewidth = 0.7, colour = "grey30") +
-  geom_violin(trim = FALSE, alpha = 0.75, colour = NA) +
-  geom_boxplot(width = 0.12, outlier.shape = NA,
-               colour = "grey20", fill = "white", linewidth = 0.5) +
-  annotate("text",
-           x = 0.6, y = ref_PSE,
-           label = sprintf("True mean = %.1f", ref_PSE),
-           hjust = 0, vjust = -0.5, size = 3.3, colour = "grey30") +
-  scale_fill_manual(values = method_colours) +
-  scale_y_continuous(name = "Estimated PSE") +
-  violin_theme
-
-# ================================================================
-# Panel B – JND
-# ================================================================
-p_jnd <- ggplot(results, aes(x = method, y = mean_jnd, fill = method)) +
-  geom_hline(yintercept = ref_JND,
-             linetype = "dashed", linewidth = 0.7, colour = "grey30") +
-  geom_violin(trim = FALSE, alpha = 0.75, colour = NA) +
-  geom_boxplot(width = 0.12, outlier.shape = NA,
-               colour = "grey20", fill = "white", linewidth = 0.5) +
-  annotate("text",
-           x = 0.6, y = ref_JND,
-           label = sprintf("True mean = %.2f", ref_JND),
-           hjust = 0, vjust = -0.5, size = 3.3, colour = "grey30") +
-  scale_fill_manual(values = method_colours) +
-  scale_y_continuous(name = "Estimated JND") +
-  violin_theme
-
-# ================================================================
-# Combine with patchwork
-# ================================================================
-library(patchwork)
-
-fig_violin <- (p_pse | p_jnd) +
-  plot_annotation(
-    title   = "Parameter recovery across simulated datasets",
-    subtitle = sprintf("n = %d iterations  ·  dashed line = true generating mean",
-                       floor(nrow(results) / length(unique(results$method)))),
-    theme = theme(
-      plot.title    = element_text(size = 14, face = "bold"),
-      plot.subtitle = element_text(size = 10, colour = "grey40")
-    )
-  )
-
-# ================================================================
-# Save violin figure
-# ================================================================
-ggsave("figure_violin_pse_jnd.pdf", fig_violin, width = 10, height = 5)
-
-message("Saved: figure_violin_pse_jnd.pdf / .png")
-
-# ================================================================
-# Estimation error density figure
-#
-# error = estimated parameter - true generating parameter.
-# A well-calibrated model should have errors centred on zero.
-# Wider distributions indicate lower precision.
-# ================================================================
-error_data <- results %>%
-  mutate(
-    PSE = mean_pse - true_PSE,
-    JND = mean_jnd - true_JND
-  ) %>%
-  pivot_longer(c(PSE, JND),
-               names_to  = "parameter",
-               values_to = "error") %>%
-  mutate(parameter = factor(parameter, levels = c("PSE", "JND")))
-
-fig_density <- ggplot(error_data,
-                      aes(x = error, fill = method, colour = method)) +
-  geom_vline(xintercept = 0,
-             linetype = "dashed", linewidth = 0.7, colour = "grey30") +
-  geom_density(alpha = 0.35, linewidth = 0.4) +
-  facet_wrap(~ parameter, scales = "free", nrow = 1) +
-  scale_fill_manual(values   = method_colours,
-                    breaks   = method_order,
-                    name     = "Model") +
-  scale_colour_manual(values = method_colours,
-                      breaks = method_order,
-                      name   = "Model") +
-  labs(
-    title    = "Estimation error across simulated datasets",
-    subtitle = sprintf("n = %d iterations  ·  dashed line = zero error",
-                       floor(nrow(results) / length(unique(results$method)))),
-    x = "Estimated \u2212 True",
-    y = "Density"
-  ) +
-  theme_classic(base_size = 12) +
-  theme(
-    strip.background   = element_blank(),
-    strip.text         = element_text(size = 13, face = "bold"),
-    legend.position    = "right",
-    legend.title       = element_text(size = 11, face = "bold"),
-    legend.text        = element_text(size = 10),
-    panel.grid.major.y = element_line(colour = "grey92", linewidth = 0.4),
-    plot.title         = element_text(size = 14, face = "bold"),
-    plot.subtitle      = element_text(size = 10, colour = "grey40")
-  )
-
-ggsave("figure_density_error.pdf", fig_density, width = 10, height = 5)
-
-message("Saved: figure_density_error.pdf / .png")
-
-
-# ================================================================
-# SSE distribution figure (hierarchical models only)
-#
-# SSE is defined only for GLMM, BH-GLM, and BH-GNM; GLM and GNM are
-# excluded because they operate at the single-subject level and do not
-# produce a single model-level SSE.
-# ================================================================
-fig_sse <- results %>%
-  filter(!is.na(SSE)) %>%
-  ggplot(aes(x = method, y = SSE, fill = method)) +
-  geom_boxplot(alpha = 0.75, outlier.shape = 21,
-               outlier.fill = NA, colour = "grey20", linewidth = 0.5) +
-  scale_fill_manual(values = method_colours) +
-  scale_x_discrete(limits = intersect(method_order,
-                                      unique(results$method[!is.na(results$SSE)]))) +
-  labs(
-    title    = "SSE distribution across simulated datasets",
-    subtitle = sprintf("n = %d iterations",
-                       floor(nrow(results) / length(unique(results$method)))),
-    x = NULL,
-    y = "SSE"
-  ) +
-  theme_classic(base_size = 12) +
-  theme(
-    legend.position    = "none",
-    panel.grid.major.y = element_line(colour = "grey92", linewidth = 0.4),
-    plot.title         = element_text(size = 14, face = "bold"),
-    plot.subtitle      = element_text(size = 10, colour = "grey40")
-  )
-
-ggsave("figure_sse_boxplot.pdf", fig_sse, width = 6, height = 5)
-
-message("Saved: figure_sse_boxplot.pdf / .png")
