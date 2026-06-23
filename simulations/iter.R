@@ -17,7 +17,7 @@ library(lmerTest)
 library(rstan)
 library(gnlm)
 
-source("R/gnlm_functions_psejnd.R")   # defines process_subject() for GNM fitting
+source("../R/gnlm_functions_psejnd.R")   # defines process_subject() for GNM fitting
 
 # ============================================================
 # Monte Carlo loop: compare GLM, GNM, GLMM, BH-GLM, BH-GNM
@@ -32,8 +32,8 @@ run_stan  <- TRUE   # set FALSE for quick GLM/GNM/GLMM-only runs
 # Compile Stan models once at the start to avoid repeated (slow) compilation.
 
 if (run_stan) {
-  stan_bhglm <- stan_model(file = "Stan/simul_bhglm.stan")
-  stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm.stan")
+  stan_bhglm <- stan_model(file = "../Stan/simul_bhglm.stan")
+  stan_bhgnm <- stan_model(file = "../Stan/simul_bhgnm.stan")
 }
 
 # ============================================================
@@ -232,7 +232,11 @@ while (any(n_done < n_target)) {
                   paste(names(n_done), n_done, sep = "=", collapse = " | ")))
 }
 
-results <- bind_rows(lapply(results_list, bind_rows))
+results <- bind_rows(lapply(results_list, bind_rows)) %>%
+  mutate(
+    bias_pse = mean_pse - true_PSE,
+    bias_jnd = mean_jnd - true_JND
+  )
 
 # ============================================================
 # Summary table: objective cross-method comparison
@@ -256,3 +260,21 @@ summary_table <- results %>%
 
 print(summary_table)
 
+# Plotting results 
+
+violin_n150 <- list()
+violin_n150_filename <- list("violin_150_pse.pdf", "violin_150_jnd.pdf")
+
+violin_n150[["pse"]] <- ggplot(data = results, mapping = aes(y = bias_pse, x = method)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  labs(y = "PSE bias", x = NULL) +
+  coord_cartesian(ylim = c(-10, 10))+
+  geom_hline( yintercept = 0,color = "red",linetype = "dashed")
+
+violin_n150[["jnd"]] <- ggplot(data = results, mapping = aes(y = bias_jnd, x = method)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  labs(y = "JND bias", x = NULL) +
+  coord_cartesian(ylim = c(-3, 10)) +
+  geom_hline( yintercept = 0,color = "red",linetype = "dashed")
+
+map2(.x = violin_n150_filename, .y = violin_n150, .f = ggsave)
