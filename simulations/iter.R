@@ -278,3 +278,23 @@ violin_n150[["jnd"]] <- ggplot(data = results, mapping = aes(y = bias_jnd, x = m
   geom_hline( yintercept = 0,color = "red",linetype = "dashed")
 
 map2(.x = violin_n150_filename, .y = violin_n150, .f = ggsave)
+
+
+# optional - to combine plots
+
+library(patchwork)
+
+# Stack plot_A on top of plot_B vertically
+combined_plot <- violin_n150[["jnd"]] / violin_n150[["pse"]]
+
+# Add automatic "A" and "B" tags to the panels
+combined_plot <- combined_plot + 
+  plot_annotation(tag_levels = 'A')
+
+# Save to PDF 
+# Pro-tip: Since they are stacked, make the height larger than the width!
+ggsave(filename = "combined_violins_vertical.pdf", 
+       plot = combined_plot, 
+       device = "pdf", 
+       width = 6,  
+       height = 9) # Taller height for vertical layouts
