@@ -24,7 +24,7 @@ source("../R/gnlm_functions_psejnd.R")   # defines process_subject() for GNM fit
 # across n_iter independent simulated datasets.
 # ============================================================
 
-n_target  <- 5    # number of successful iterations required per method
+n_target  <- 150    # number of successful iterations required per method
 ntrials   <- 160
 nsubjects <- 10
 run_stan  <- TRUE   # set FALSE for quick GLM/GNM/GLMM-only runs
@@ -297,6 +297,26 @@ summary_table <- results %>%
   )
 
 print(summary_table)
+
+summary_table_pos <- results %>%
+  dplyr::filter(mean_pse > 0) %>%
+  group_by(method) %>%
+  summarise(
+    # Bias and RMSE relative to the true generating values
+    bias_pse        = mean(mean_pse - true_PSE, na.rm = TRUE),
+    rmse_pse        = sqrt(mean((mean_pse - true_PSE)^2, na.rm = TRUE)),
+    bias_jnd        = mean(mean_jnd - true_JND, na.rm = TRUE),
+    rmse_jnd        = sqrt(mean((mean_jnd - true_JND)^2, na.rm = TRUE)),
+    # Mean SSE (now available for all five models)
+    mean_SSE        = mean(SSE, na.rm = TRUE),
+    # Empirical Type I error rate: proportion of iterations where H0 was
+    # rejected at alpha = 0.05 (should be ~0.05 under a correct model)
+    reject_rate_pse = mean(t_pse_p < 0.05, na.rm = TRUE),
+    reject_rate_jnd = mean(t_jnd_p < 0.05, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+print(summary_table_pos)
 
 # Plotting results 
 
