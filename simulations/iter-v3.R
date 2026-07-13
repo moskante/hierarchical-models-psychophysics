@@ -364,21 +364,34 @@ print(summary_table_pos)
 # Plotting
 # ============================================================
 violin_n150 <- list()
-violin_n150_filename <- list("violin_150_pse.pdf", "violin_150_jnd.pdf")
+violin_n150_filename <- list("violin_150_pse_sample.pdf", "violin_150_jnd_sample.pdf",
+                             "violin_150_pse_popul.pdf", "violin_150_jnd_popul.pdf")
 
-violin_n150[["pse"]] <- ggplot(data = results, mapping = aes(y = bias_samp_pse, x = method)) +
-geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
-labs(y = "PSE sample bias", x = NULL) +
-coord_cartesian(ylim = c(-10, 10))+
-geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+violin_n150[["pse_sample"]] <- ggplot(data = results, mapping = aes(y = bias_samp_pse, x = method)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  labs(y = "PSE sample bias", x = NULL) +
+  coord_cartesian(ylim = c(-10, 10))+
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
 
-violin_n150[["jnd"]] <- ggplot(data = results, mapping = aes(y = bias_samp_jnd, x = method)) +
-geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
-labs(y = "JND sample bias", x = NULL) +
-coord_cartesian(ylim = c(-3, 10)) +
-geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+violin_n150[["jnd_sample"]] <- ggplot(data = results, mapping = aes(y = bias_samp_jnd, x = method)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  labs(y = "JND sample bias", x = NULL) +
+  coord_cartesian(ylim = c(-3, 10)) +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
 
-map2(.x = violin_n150_filename, .y = violin_n150, .f = ggsave)
+violin_n150[["pse_fixeff"]] <- ggplot(data = results, mapping = aes(y = bias_pop_pse, x = method)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  labs(y = "PSE population bias", x = NULL) +
+  #coord_cartesian(ylim = c(-10, 10))+
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+
+violin_n150[["jnd_fixeff"]] <- ggplot(data = results, mapping = aes(y = bias_pop_jnd, x = method)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  labs(y = "JND population bias", x = NULL) +
+  coord_cartesian(ylim = c(-3, 10)) +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+
+map2(.x = violin_n150_filename, .y = violin_n150, .f = ggsave, path = "Figs")
 
 library(patchwork)
 combined_plot <- violin_n150[["jnd"]] / violin_n150[["pse"]]
