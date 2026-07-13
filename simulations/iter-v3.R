@@ -1,5 +1,23 @@
+# ============================================================================
 # Monte Carlo simulation study: cross-method comparison of GLM, GNM, GLMM,
 # BH-GLM, and BH-GNM on independently simulated psychophysical datasets.
+#
+# ============================================================================
+# NOMENCLATURE & PARAMETER DEFINITIONS
+# ============================================================================
+# 1. "true_" Prefixes (Generative Ground Truth):
+#    - true_fixeff_pse / true_fixeff_jnd: The fixed, absolute parameters of the 
+#      underlying population distribution used to seed the simulation.
+#    - true_sample_pse / true_sample_jnd: The empirical arithmetic mean of the
+#      10 specific subjects drawn in a given iteration (includes sample noise).
+#
+# 2. "fit_" Prefixes (Estimated Model Parameters):
+#    - fit_sample_mean_pse / fit_sample_mean_jnd: The mean of the subject-specific
+#      parameters estimated by the model for that iteration's sample.
+#    - fit_pop_pse / fit_pop_jnd: The global population hyper-parameters directly
+#      estimated by hierarchical models (fixed effects in GLMM, hyper-medians in Stan),
+#      or the sample mean proxy for non-hierarchical models (GLM, GNM).
+# ============================================================================
 
 library(tidyverse)
 library(MixedPsy)
@@ -13,7 +31,7 @@ source("../R/gnlm_functions_psejnd.R")   # defines process_subject() for GNM fit
 # ============================================================
 # Monte Carlo loop configuration
 # ============================================================
-n_target  <- 5    # number of successful iterations required per method
+n_target  <- 150    # number of successful iterations required per method
 ntrials   <- 160
 nsubjects <- 10
 run_stan  <- TRUE   # set FALSE for quick GLM/GNM/GLMM-only runs
@@ -42,11 +60,11 @@ stan_params <- function(stan_fit, param_pse = "pse", param_jnd = "jnd") {
        jnd = mean(apply(s[[param_jnd]], 2, median), na.rm = TRUE))
 }
 
-# --- UPDATED: Directly extract JND population hyper-parameter from Stan ---
+# Population-level helper (Direct hyper-parameter estimation)
 stan_pop_params <- function(stan_fit, param_pse = "PSE", param_jnd = "JND") {
   s <- extract(stan_fit)
   list(pse = median(s[[param_pse]], na.rm = TRUE),
-       jnd = median(s[[param_jnd]], na.rm = TRUE)) # Extracted directly from Stan[cite: 5, 6]
+       jnd = median(s[[param_jnd]], na.rm = TRUE))
 }
 
 simulate_dataset <- function() {
@@ -61,16 +79,20 @@ simulate_dataset <- function() {
               pse = -Intercept / Slope,
               jnd = qnorm(0.75) / Slope,
               .groups = "drop")
-  list(data     = simul_data,
-       true_PSE = mean(params_true$pse),
-       true_JND = mean(params_true$jnd))
+  list(data            = simul_data,
+       true_sample_pse = mean(params_true$pse),
+       true_sample_jnd = mean(params_true$jnd))
 }
 
 # ============================================================
-# Fit functions
+# Fit functions (All sharing the clean signature: function(iter, sim))
 # ============================================================
-fit_GLM <- function(iter, simul_data, true_PSE, true_JND) {
+fit_GLM <- function(iter, sim) {
   tryCatch({
+    simul_data      <- sim$data
+    true_sample_pse <- sim$true_sample_pse
+    true_sample_jnd <- sim$true_sample_jnd
+    
     glm_list   <- PsychModels(cbind(Longer, Total - Longer) ~ X,
                               data = simul_data,
                               group_factors = "Subject")
@@ -89,24 +111,28 @@ fit_GLM <- function(iter, simul_data, true_PSE, true_JND) {
       summarise(sse = sum((obs_prop - pred_prob)^2, na.rm = TRUE)) %>%
       pull(sse)
     
-    t_pse      <- t.test(params_glm$pse,  mu = true_PSE)
-    t_jnd      <- t.test(params_glm$jnd,  mu = true_JND)
+    t_pse      <- t.test(params_glm$pse,  mu = true_sample_pse)
+    t_jnd      <- t.test(params_glm$jnd,  mu = true_sample_jnd)
     
     m_pse <- mean(params_glm$pse, na.rm = TRUE)
     m_jnd <- mean(params_glm$jnd, na.rm = TRUE)
     
     tibble(iter = iter, method = "GLM",
-           mean_pse   = m_pse, mean_jnd = m_jnd,
-           pop_pse    = m_pse, pop_jnd    = m_jnd, 
+           fit_sample_mean_pse = m_pse, fit_sample_mean_jnd = m_jnd,
+           fit_pop_pse         = m_pse, fit_pop_jnd         = m_jnd, 
            t_pse_stat = as.numeric(t_pse$statistic), t_pse_p = t_pse$p.value,
            t_jnd_stat = as.numeric(t_jnd$statistic), t_jnd_p = t_jnd$p.value,
-           SSE = sse_glm, true_PSE = true_PSE, true_JND = true_JND,
+           SSE = sse_glm, true_sample_pse = true_sample_pse, true_sample_jnd = true_sample_jnd,
            true_fixeff_pse = true_fixeff_pse_val, true_fixeff_jnd = true_fixeff_jnd_val)
   }, error = function(e) NULL)
 }
 
-fit_GNM <- function(iter, simul_data, true_PSE, true_JND) {
+fit_GNM <- function(iter, sim) {
   tryCatch({
+    simul_data      <- sim$data
+    true_sample_pse <- sim$true_sample_pse
+    true_sample_jnd <- sim$true_sample_jnd
+    
     subjects_data <- simul_data %>% group_split(Subject)
     sub_names     <- map_chr(subjects_data, ~ as.character(.x$Subject[1]))
     params_gnm    <- map_dfr(subjects_data, process_subject)
@@ -131,24 +157,28 @@ fit_GNM <- function(iter, simul_data, true_PSE, true_JND) {
       summarise(sse = sum((obs_prop - pred_prob)^2, na.rm = TRUE)) %>%
       pull(sse)
     
-    t_pse <- t.test(params_gnm$pse, mu = true_PSE)
-    t_jnd <- t.test(params_gnm$jnd, mu = true_JND)
+    t_pse <- t.test(params_gnm$pse, mu = true_sample_pse)
+    t_jnd <- t.test(params_gnm$jnd, mu = true_sample_jnd)
     
     m_pse <- mean(params_gnm$pse, na.rm = TRUE)
     m_jnd <- mean(params_gnm$jnd, na.rm = TRUE)
     
     tibble(iter = iter, method = "GNM",
-           mean_pse   = m_pse, mean_jnd = m_jnd,
-           pop_pse    = m_pse, pop_jnd    = m_jnd,
+           fit_sample_mean_pse = m_pse, fit_sample_mean_jnd = m_jnd,
+           fit_pop_pse         = m_pse, fit_pop_jnd         = m_jnd,
            t_pse_stat = as.numeric(t_pse$statistic), t_pse_p = t_pse$p.value,
            t_jnd_stat = as.numeric(t_jnd$statistic), t_jnd_p = t_jnd$p.value,
-           SSE = sse_gnm, true_PSE = true_PSE, true_JND = true_JND,
+           SSE = sse_gnm, true_sample_pse = true_sample_pse, true_sample_jnd = true_sample_jnd,
            true_fixeff_pse = true_fixeff_pse_val, true_fixeff_jnd = true_fixeff_jnd_val)
   }, error = function(e) NULL)
 }
 
-fit_GLMM <- function(iter, simul_data, true_PSE, true_JND) {
+fit_GLMM <- function(iter, sim) {
   tryCatch({
+    simul_data      <- sim$data
+    true_sample_pse <- sim$true_sample_pse
+    true_sample_jnd <- sim$true_sample_jnd
+    
     glmm_fit <- glmer(
       cbind(Longer, Total - Longer) ~ X + (1 + X | Subject),
       family = binomial(link = "probit"), data = simul_data
@@ -161,21 +191,31 @@ fit_GLMM <- function(iter, simul_data, true_PSE, true_JND) {
     fe       <- fixef(glmm_fit)
     
     tibble(iter = iter, method = "GLMM",
-           mean_pse   = mean(subj_pse, na.rm = TRUE),
-           mean_jnd   = mean(subj_jnd, na.rm = TRUE),
-           pop_pse    = as.numeric(-fe["(Intercept)"] / fe["X"]),
-           pop_jnd    = as.numeric(qnorm(0.75) / fe["X"]),
+           fit_sample_mean_pse = mean(subj_pse, na.rm = TRUE),
+           fit_sample_mean_jnd = mean(subj_jnd, na.rm = TRUE),
+           fit_pop_pse         = as.numeric(-fe["(Intercept)"] / fe["X"]),
+           fit_pop_jnd         = as.numeric(qnorm(0.75) / fe["X"]),
            t_pse_stat = NA_real_, t_pse_p = NA_real_,
            t_jnd_stat = NA_real_, t_jnd_p = NA_real_,
            SSE        = sum(residuals(glmm_fit, type = "response")^2),
-           true_PSE   = true_PSE, true_JND = true_JND,
+           true_sample_pse = true_sample_pse, true_sample_jnd = true_sample_jnd,
            true_fixeff_pse = true_fixeff_pse_val, true_fixeff_jnd = true_fixeff_jnd_val)
   }, error = function(e) NULL)
 }
 
-fit_BHGLM <- function(iter, simul_data, true_PSE, true_JND, datistan) {
+fit_BHGLM <- function(iter, sim) {
   tryCatch({
-    init_fn <- function() list(pse   = rep(true_PSE, datistan$nsubj),
+    simul_data      <- sim$data
+    true_sample_pse <- sim$true_sample_pse
+    true_sample_jnd <- sim$true_sample_jnd
+    
+    # --- Encapsulated: Extract Stan specific list structure here ---
+    datistan <- list(
+      y = simul_data$Longer, n = simul_data$Total, nobs = nrow(simul_data),
+      x = simul_data$X, subject = as.integer(simul_data$Subject), nsubj = nlevels(simul_data$Subject)
+    )
+    
+    init_fn <- function() list(pse   = rep(true_sample_pse, datistan$nsubj),
                                sigma = rep(15,       datistan$nsubj))
     fit <- sampling(stan_bhglm, data = datistan,
                     chains = 3, warmup = 3000, iter = 5000,
@@ -183,23 +223,32 @@ fit_BHGLM <- function(iter, simul_data, true_PSE, true_JND, datistan) {
                     init = list(init_fn(), init_fn(), init_fn()))
     
     p_samp <- stan_params(fit, param_pse = "pse", param_jnd = "jnd")
-    # --- UPDATED: Passing the correct JND string ---
     p_pop  <- stan_pop_params(fit, param_pse = "PSE", param_jnd = "JND")
     
     tibble(iter = iter, method = "BH-GLM",
-           mean_pse = p_samp$pse, mean_jnd = p_samp$jnd,
-           pop_pse  = p_pop$pse,  pop_jnd  = p_pop$jnd,
+           fit_sample_mean_pse = p_samp$pse, fit_sample_mean_jnd = p_samp$jnd,
+           fit_pop_pse         = p_pop$pse,  fit_pop_jnd         = p_pop$jnd,
            t_pse_stat = NA_real_, t_pse_p = NA_real_,
            t_jnd_stat = NA_real_, t_jnd_p = NA_real_,
            SSE = stan_sse(fit, datistan$y, datistan$n),
-           true_PSE = true_PSE, true_JND = true_JND,
+           true_sample_pse = true_sample_pse, true_sample_jnd = true_sample_jnd,
            true_fixeff_pse = true_fixeff_pse_val, true_fixeff_jnd = true_fixeff_jnd_val)
   }, error = function(e) NULL)
 }
 
-fit_BHGNM <- function(iter, simul_data, true_PSE, true_JND, datistan) {
+fit_BHGNM <- function(iter, sim) {
   tryCatch({
-    init_fn <- function() list(pse    = rep(true_PSE, datistan$nsubj),
+    simul_data      <- sim$data
+    true_sample_pse <- sim$true_sample_pse
+    true_sample_jnd <- sim$true_sample_jnd
+    
+    # --- Encapsulated: Extract Stan specific list structure here ---
+    datistan <- list(
+      y = simul_data$Longer, n = simul_data$Total, nobs = nrow(simul_data),
+      x = simul_data$X, subject = as.integer(simul_data$Subject), nsubj = nlevels(simul_data$Subject)
+    )
+    
+    init_fn <- function() list(pse    = rep(true_sample_pse, datistan$nsubj),
                                sigma  = rep(15,       datistan$nsubj),
                                gamma  = rep(0.01,     datistan$nsubj),
                                lambda = rep(0.01,     datistan$nsubj))
@@ -209,22 +258,21 @@ fit_BHGNM <- function(iter, simul_data, true_PSE, true_JND, datistan) {
                     init = list(init_fn(), init_fn(), init_fn()))
     
     p_samp <- stan_params(fit, param_pse = "pse", param_jnd = "jnd")
-    # --- UPDATED: Passing the correct JND string ---
     p_pop  <- stan_pop_params(fit, param_pse = "PSE", param_jnd = "JND")
     
     tibble(iter = iter, method = "BH-GNM",
-           mean_pse = p_samp$pse, mean_jnd = p_samp$jnd,
-           pop_pse  = p_pop$pse,  pop_jnd  = p_pop$jnd,
+           fit_sample_mean_pse = p_samp$pse, fit_sample_mean_jnd = p_samp$jnd,
+           fit_pop_pse         = p_pop$pse,  fit_pop_jnd         = p_pop$jnd,
            t_pse_stat = NA_real_, t_pse_p = NA_real_,
            t_jnd_stat = NA_real_, t_jnd_p = NA_real_,
            SSE = stan_sse(fit, datistan$y, datistan$n),
-           true_PSE = true_PSE, true_JND = true_JND,
+           true_sample_pse = true_sample_pse, true_sample_jnd = true_sample_jnd,
            true_fixeff_pse = true_fixeff_pse_val, true_fixeff_jnd = true_fixeff_jnd_val)
   }, error = function(e) NULL)
 }
 
 # ============================================================
-# Main Loop Execution
+# Main Loop Execution (Beautifully Unified!)
 # ============================================================
 all_methods <- if (run_stan) c("GLM", "GNM", "GLMM", "BH-GLM", "BH-GNM") else c("GLM", "GNM", "GLMM")
 
@@ -233,28 +281,20 @@ n_done       <- setNames(integer(length(all_methods)), all_methods)
 iter_counter <- 0L
 
 while (any(n_done < n_target)) {
-  sim        <- simulate_dataset()
-  simul_data <- sim$data
-  true_PSE   <- sim$true_PSE
-  true_JND   <- sim$true_JND
   
-  if (run_stan) {
-    datistan <- list(
-      y = simul_data$Longer, n = simul_data$Total, nobs = nrow(simul_data),
-      x = simul_data$X, subject = as.integer(simul_data$Subject), nsubj = nlevels(simul_data$Subject)
-    )
-  }
-  
+  # 1. Generate the single source of truth for this iteration
+  sim <- simulate_dataset()
   iter_counter <- iter_counter + 1L
   
+  # 2. Fit models by passing the exact same uniform inputs
   for (m in all_methods) {
     if (n_done[m] >= n_target) next
     row <- switch(m,
-                  "GLM"    = fit_GLM( iter_counter, simul_data, true_PSE, true_JND),
-                  "GNM"    = fit_GNM( iter_counter, simul_data, true_PSE, true_JND),
-                  "GLMM"   = fit_GLMM(iter_counter, simul_data, true_PSE, true_JND),
-                  "BH-GLM" = fit_BHGLM(iter_counter, simul_data, true_PSE, true_JND, datistan),
-                  "BH-GNM" = fit_BHGNM(iter_counter, simul_data, true_PSE, true_JND, datistan)
+                  "GLM"    = fit_GLM( iter_counter, sim),
+                  "GNM"    = fit_GNM( iter_counter, sim),
+                  "GLMM"   = fit_GLMM(iter_counter, sim),
+                  "BH-GLM" = fit_BHGLM(iter_counter, sim),
+                  "BH-GNM" = fit_BHGNM(iter_counter, sim)
     )
     if (!is.null(row)) {
       n_done[m] <- n_done[m] + 1L
@@ -264,62 +304,58 @@ while (any(n_done < n_target)) {
   message(sprintf("Attempt %d | successes: %s", iter_counter, paste(names(n_done), n_done, sep = "=", collapse = " | ")))
 }
 
+# ============================================================
+# Post-Processing & Tables
+# ============================================================
 results <- bind_rows(lapply(results_list, bind_rows)) %>%
-  mutate(
-    bias_pse     = mean_pse - true_PSE,
-    bias_jnd     = mean_jnd - true_JND,
-    bias_pop_pse = pop_pse - true_fixeff_pse,
-    bias_pop_jnd = pop_jnd - true_fixeff_jnd
-  )
+mutate(
+  bias_samp_pse = fit_sample_mean_pse - true_sample_pse,
+  bias_samp_jnd = fit_sample_mean_jnd - true_sample_jnd,
+  bias_pop_pse  = fit_pop_pse - true_fixeff_pse,
+  bias_pop_jnd  = fit_pop_jnd - true_fixeff_jnd
+)
 
-# ============================================================
-# Summary Tables
-# ============================================================
 summary_table <- results %>%
-  group_by(method) %>%
-  summarise(
-    # --- Sample Level Metrics ---
-    bias_samp_pse   = mean(mean_pse - true_PSE, na.rm = TRUE),
-    rmse_samp_pse   = sqrt(mean((mean_pse - true_PSE)^2, na.rm = TRUE)),
-    bias_samp_jnd   = mean(mean_jnd - true_JND, na.rm = TRUE),
-    rmse_samp_jnd   = sqrt(mean((mean_jnd - true_JND)^2, na.rm = TRUE)),
-    
-    # --- Population Level Metrics ---
-    bias_pop_pse    = mean(pop_pse - true_fixeff_pse, na.rm = TRUE),
-    rmse_pop_pse    = sqrt(mean((pop_pse - true_fixeff_pse)^2, na.rm = TRUE)),
-    bias_pop_jnd    = mean(pop_jnd - true_fixeff_jnd, na.rm = TRUE),
-    rmse_pop_jnd    = sqrt(mean((pop_jnd - true_fixeff_jnd)^2, na.rm = TRUE)),
-    
-    mean_SSE        = mean(SSE, na.rm = TRUE),
-    reject_rate_pse = mean(t_pse_p < 0.05, na.rm = TRUE),
-    reject_rate_jnd = mean(t_jnd_p < 0.05, na.rm = TRUE),
-    .groups = "drop"
-  )
+group_by(method) %>%
+summarise(
+  bias_samp_pse   = mean(fit_sample_mean_pse - true_sample_pse, na.rm = TRUE),
+  rmse_samp_pse   = sqrt(mean((fit_sample_mean_pse - true_sample_pse)^2, na.rm = TRUE)),
+  bias_samp_jnd   = mean(fit_sample_mean_jnd - true_sample_jnd, na.rm = TRUE),
+  rmse_samp_jnd   = sqrt(mean((fit_sample_mean_jnd - true_sample_jnd)^2, na.rm = TRUE)),
+  
+  bias_pop_pse    = mean(fit_pop_pse - true_fixeff_pse, na.rm = TRUE),
+  rmse_pop_pse    = sqrt(mean((fit_pop_pse - true_fixeff_pse)^2, na.rm = TRUE)),
+  bias_pop_jnd    = mean(fit_pop_jnd - true_fixeff_jnd, na.rm = TRUE),
+  rmse_pop_jnd    = sqrt(mean((fit_pop_jnd - true_fixeff_jnd)^2, na.rm = TRUE)),
+  
+  mean_SSE        = mean(SSE, na.rm = TRUE),
+  reject_rate_pse = mean(t_pse_p < 0.05, na.rm = TRUE),
+  reject_rate_jnd = mean(t_jnd_p < 0.05, na.rm = TRUE),
+  .groups = "drop"
+)
 
 print("--- GLOBAL SUMMARY TABLE ---")
 print(summary_table)
 
 summary_table_pos <- results %>%
-  dplyr::filter(mean_pse > 0) %>%
-  group_by(method) %>%
-  summarise(
-    # --- Sample Level Metrics ---
-    bias_samp_pse   = mean(mean_pse - true_PSE, na.rm = TRUE),
-    rmse_samp_pse   = sqrt(mean((mean_pse - true_PSE)^2, na.rm = TRUE)),
-    bias_samp_jnd   = mean(mean_jnd - true_JND, na.rm = TRUE),
-    rmse_samp_jnd   = sqrt(mean((mean_jnd - true_JND)^2, na.rm = TRUE)),
-    
-    # --- Population Level Metrics ---
-    bias_pop_pse    = mean(pop_pse - true_fixeff_pse, na.rm = TRUE),
-    rmse_pop_pse    = sqrt(mean((pop_pse - true_fixeff_pse)^2, na.rm = TRUE)),
-    bias_pop_jnd    = mean(pop_jnd - true_fixeff_jnd, na.rm = TRUE),
-    rmse_pop_jnd    = sqrt(mean((pop_jnd - true_fixeff_jnd)^2, na.rm = TRUE)),
-    
-    mean_SSE        = mean(SSE, na.rm = TRUE),
-    reject_rate_pse = mean(t_pse_p < 0.05, na.rm = TRUE),
-    reject_rate_jnd = mean(t_jnd_p < 0.05, na.rm = TRUE),
-    .groups = "drop"
-  )
+dplyr::filter(fit_sample_mean_pse > 0) %>%
+group_by(method) %>%
+summarise(
+  bias_samp_pse   = mean(fit_sample_mean_pse - true_sample_pse, na.rm = TRUE),
+  rmse_samp_pse   = sqrt(mean((fit_sample_mean_pse - true_sample_pse)^2, na.rm = TRUE)),
+  bias_samp_jnd   = mean(fit_sample_mean_jnd - true_sample_jnd, na.rm = TRUE),
+  rmse_samp_jnd   = sqrt(mean((fit_sample_mean_jnd - true_sample_jnd)^2, na.rm = TRUE)),
+  
+  bias_pop_pse    = mean(fit_pop_pse - true_fixeff_pse, na.rm = TRUE),
+  rmse_pop_pse    = sqrt(mean((fit_pop_pse - true_fixeff_pse)^2, na.rm = TRUE)),
+  bias_pop_jnd    = mean(fit_pop_jnd - true_fixeff_jnd, na.rm = TRUE),
+  rmse_pop_jnd    = sqrt(mean((fit_pop_jnd - true_fixeff_jnd)^2, na.rm = TRUE)),
+  
+  mean_SSE        = mean(SSE, na.rm = TRUE),
+  reject_rate_pse = mean(t_pse_p < 0.05, na.rm = TRUE),
+  reject_rate_jnd = mean(t_jnd_p < 0.05, na.rm = TRUE),
+  .groups = "drop"
+)
 
 print("--- POSITIVE PSE SUMMARY TABLE ---")
 print(summary_table_pos)
@@ -330,17 +366,17 @@ print(summary_table_pos)
 violin_n150 <- list()
 violin_n150_filename <- list("violin_150_pse.pdf", "violin_150_jnd.pdf")
 
-violin_n150[["pse"]] <- ggplot(data = results, mapping = aes(y = bias_pse, x = method)) +
-  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
-  labs(y = "PSE sample bias", x = NULL) +
-  coord_cartesian(ylim = c(-10, 10))+
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+violin_n150[["pse"]] <- ggplot(data = results, mapping = aes(y = bias_samp_pse, x = method)) +
+geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+labs(y = "PSE sample bias", x = NULL) +
+coord_cartesian(ylim = c(-10, 10))+
+geom_hline(yintercept = 0, color = "red", linetype = "dashed")
 
-violin_n150[["jnd"]] <- ggplot(data = results, mapping = aes(y = bias_jnd, x = method)) +
-  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
-  labs(y = "JND sample bias", x = NULL) +
-  coord_cartesian(ylim = c(-3, 10)) +
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+violin_n150[["jnd"]] <- ggplot(data = results, mapping = aes(y = bias_samp_jnd, x = method)) +
+geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+labs(y = "JND sample bias", x = NULL) +
+coord_cartesian(ylim = c(-3, 10)) +
+geom_hline(yintercept = 0, color = "red", linetype = "dashed")
 
 map2(.x = violin_n150_filename, .y = violin_n150, .f = ggsave)
 
@@ -348,5 +384,5 @@ library(patchwork)
 combined_plot <- violin_n150[["jnd"]] / violin_n150[["pse"]]
 combined_plot <- combined_plot + plot_annotation(tag_levels = 'A')
 
-ggsave(filename = "combined_violins_vertical.pdf", 
+ggsave(filename = "combined_violins_vertical.pdf",
        plot = combined_plot, device = "pdf", width = 6, height = 9)
