@@ -38,9 +38,18 @@ ntrials   <- 160
 nsubjects <- 10
 run_stan  <- TRUE   # set FALSE for quick GLM/GNM/GLMM-only runs
 
-# --- True Fixed Population Values (Generative Ground Truth) ---
-true_fixeff_pse_val <- -(-7) / 0.0875        # 80
-true_fixeff_jnd_val <- qnorm(0.75) / 0.0875  # ~7.708455
+# --- True Population Values (Generative Ground Truth) ---
+true_fixeff_pse     <- -(-7) / 0.0875        
+true_fixeff_jnd     <- qnorm(0.75) / 0.0875  
+
+# Mathematically Adjusted Population Parameters (using mean of uniform ranges)
+pop_mean_gamma      <- 0.075                 # mean of c(0.05, 0.10)
+pop_mean_lambda     <- 0.025                 # mean of c(0, 0.05)
+pop_sigma           <- 1 / 0.0875
+k_pop_val           <- qnorm((0.5 - pop_mean_gamma) / (1 - pop_mean_gamma - pop_mean_lambda)) * pop_sigma
+
+true_fixeff_pse_adj <- true_fixeff_pse + k_pop_val
+true_fixeff_jnd_adj <- qnorm((0.75 - pop_mean_gamma) / (1 - pop_mean_gamma - pop_mean_lambda)) * pop_sigma - k_pop_val
 
 if (run_stan) {
   stan_bhglm <- stan_model(file = "../Stan/simul_bhglm.stan")
@@ -366,10 +375,12 @@ while (any(n_done < n_target)) {
 # ============================================================
 results <- bind_rows(lapply(results_list, bind_rows)) %>%
   mutate(
+    true_fixeff_pse_adj = true_fixeff_pse_adj,
+    true_fixeff_jnd_adj = true_fixeff_jnd_adj,
     bias_samp_pse     = fit_sample_mean_pse - true_sample_pse,
     bias_samp_jnd     = fit_sample_mean_jnd - true_sample_jnd,
-    bias_samp_pse_adj = fit_sample_mean_pse_adj - true_sample_pse, # Added
-    bias_samp_jnd_adj = fit_sample_mean_jnd_adj - true_sample_jnd, # Added
+    bias_samp_pse_adj = fit_sample_mean_pse_adj - true_fixeff_pse_adj, # Added
+    bias_samp_jnd_adj = fit_sample_mean_jnd_adj - true_fixeff_jnd_adj, # Added
     bias_pop_pse      = fit_pop_pse - true_fixeff_pse,
     bias_pop_jnd      = fit_pop_jnd - true_fixeff_jnd
   )
@@ -378,22 +389,22 @@ summary_table <- results %>%
   group_by(method) %>%
   summarise(
     # --- Sample Level Metrics (Simplified) ---
-    bias_samp_pse       = mean(fit_sample_mean_pse - true_sample_pse, na.rm = TRUE),
-    rmse_samp_pse       = sqrt(mean((fit_sample_mean_pse - true_sample_pse)^2, na.rm = TRUE)),
-    bias_samp_jnd       = mean(fit_sample_mean_jnd - true_sample_jnd, na.rm = TRUE),
-    rmse_samp_jnd       = sqrt(mean((fit_sample_mean_jnd - true_sample_jnd)^2, na.rm = TRUE)),
+    bias_samp_pse       = mean(fit_sample_mean_pse - true_fixeff_pse_adj, na.rm = TRUE),
+    rmse_samp_pse       = sqrt(mean((fit_sample_mean_pse - true_fixeff_pse_adj)^2, na.rm = TRUE)),
+    bias_samp_jnd       = mean(fit_sample_mean_jnd - true_fixeff_jnd_adj, na.rm = TRUE),
+    rmse_samp_jnd       = sqrt(mean((fit_sample_mean_jnd - true_fixeff_jnd_adj)^2, na.rm = TRUE)),
     
     # --- Sample Level Metrics (Adjusted for Lapse/Guess) ---
-    bias_samp_pse_adj   = mean(fit_sample_mean_pse_adj - true_sample_pse, na.rm = TRUE),
-    rmse_samp_pse_adj   = sqrt(mean((fit_sample_mean_pse_adj - true_sample_pse)^2, na.rm = TRUE)),
-    bias_samp_jnd_adj   = mean(fit_sample_mean_jnd_adj - true_sample_jnd, na.rm = TRUE),
-    rmse_samp_jnd_adj   = sqrt(mean((fit_sample_mean_jnd_adj - true_sample_jnd)^2, na.rm = TRUE)),
+    bias_samp_pse_adj   = mean(fit_sample_mean_pse_adj - true_fixeff_pse_adj, na.rm = TRUE),
+    rmse_samp_pse_adj   = sqrt(mean((fit_sample_mean_pse_adj - true_fixeff_pse_adj)^2, na.rm = TRUE)),
+    bias_samp_jnd_adj   = mean(fit_sample_mean_jnd_adj - true_fixeff_jnd_adj, na.rm = TRUE),
+    rmse_samp_jnd_adj   = sqrt(mean((fit_sample_mean_jnd_adj - true_fixeff_jnd_adj)^2, na.rm = TRUE)),
     
     # --- Population Level Metrics ---
-    bias_pop_pse        = mean(fit_pop_pse - true_fixeff_pse, na.rm = TRUE),
-    rmse_pop_pse        = sqrt(mean((fit_pop_pse - true_fixeff_pse)^2, na.rm = TRUE)),
-    bias_pop_jnd        = mean(fit_pop_jnd - true_fixeff_jnd, na.rm = TRUE),
-    rmse_pop_jnd        = sqrt(mean((fit_pop_jnd - true_fixeff_jnd)^2, na.rm = TRUE)),
+    bias_pop_pse        = mean(fit_pop_pse - true_fixeff_pse_adj, na.rm = TRUE),
+    rmse_pop_pse        = sqrt(mean((fit_pop_pse - true_fixeff_pse_adj)^2, na.rm = TRUE)),
+    bias_pop_jnd        = mean(fit_pop_jnd - true_fixeff_jnd_adj, na.rm = TRUE),
+    rmse_pop_jnd        = sqrt(mean((fit_pop_jnd - true_fixeff_jnd_adj)^2, na.rm = TRUE)),
     
     mean_SSE            = mean(SSE, na.rm = TRUE),
     reject_rate_pse     = mean(t_pse_p < 0.05, na.rm = TRUE),

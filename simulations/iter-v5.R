@@ -39,11 +39,12 @@ nsubjects <- 10
 run_stan  <- TRUE   # set FALSE for quick GLM/GNM/GLMM-only runs
 
 # --- True Population Values (Generative Ground Truth) ---
+# Unadjusted Perceptual Parameters
 true_fixeff_pse     <- -(-7) / 0.0875        
 true_fixeff_jnd     <- qnorm(0.75) / 0.0875  
 
-# Mathematically Adjusted Population Parameters (using mean of uniform ranges)
-pop_mean_gamma      <- 0.075                 # mean of c(0.05, 0.10)
+# FIXED: Mathematically Adjusted Population Parameters (using CRAN defaults c(0, 0.05))
+pop_mean_gamma      <- 0.025                 # mean of c(0, 0.05)
 pop_mean_lambda     <- 0.025                 # mean of c(0, 0.05)
 pop_sigma           <- 1 / 0.0875
 k_pop_val           <- qnorm((0.5 - pop_mean_gamma) / (1 - pop_mean_gamma - pop_mean_lambda)) * pop_sigma
@@ -64,25 +65,28 @@ stan_sse <- function(stan_fit, y_obs, trials) {
   sum((y_obs / trials - fitted_probs)^2)
 }
 
+# questi Stan unire una unica funzione.
+# modificare in Stan
 stan_params <- function(stan_fit, param_pse = "pse", param_jnd = "jnd") {
   s <- extract(stan_fit)
   list(pse = mean(apply(s[[param_pse]], 2, median), na.rm = TRUE),
        jnd = mean(apply(s[[param_jnd]], 2, median), na.rm = TRUE))
 }
 
+# Modificare in Stan e aggiungere LAMBDA e GAMMA
 stan_pop_params <- function(stan_fit, param_pse = "PSE", param_jnd = "JND") {
   s <- extract(stan_fit)
   list(pse = median(s[[param_pse]], na.rm = TRUE),
        jnd = median(s[[param_jnd]], na.rm = TRUE))
 }
 
-# Extract guess and lapse rates from Stan
 stan_asymptotes <- function(stan_fit) {
   s <- extract(stan_fit)
   list(gamma  = mean(apply(s$gamma, 2, median), na.rm = TRUE),
        lambda = mean(apply(s$lambda, 2, median), na.rm = TRUE))
 }
 
+# Questa va via e si sposta in Stan aggiungendo LAMBDA E GAMMA
 stan_params_adjusted <- function(stan_fit) {
   s <- extract(stan_fit)
   nsubj <- dim(s$pse)[2]
@@ -96,11 +100,11 @@ stan_params_adjusted <- function(stan_fit) {
     lambda_draws <- s$lambda[, j]
     
     val_pse <- (0.5 - gamma_draws) / (1 - gamma_draws - lambda_draws)
-    val_pse <- pmax(1e-5, pmin(1 - 1e-5, val_pse)) 
+    val_pse = pmax(1e-5, pmin(1 - 1e-5, val_pse))
     k_draws <- qnorm(val_pse) * sigma_draws
     
     val_jnd <- (0.75 - gamma_draws) / (1 - gamma_draws - lambda_draws)
-    val_jnd <- pmax(1e-5, pmin(1 - 1e-5, val_jnd))
+    val_jnd = pmax(1e-5, pmin(1 - 1e-5, val_jnd))
     jnd_draws <- qnorm(val_jnd) * sigma_draws - k_draws
     
     adj_pse_subj[j] <- median(pse_draws + k_draws, na.rm = TRUE)
@@ -132,8 +136,8 @@ simulate_dataset <- function() {
     mutate(
       sigma_i = 1 / Slope_i,
       mu_i    = -Intercept_i / Slope_i,
-      pse_sim = mu_i,
-      jnd_sim = qnorm(0.75) * sigma_i,
+      pse_sim = mu_i, # tenere solo i valori aggiustati 
+      jnd_sim = qnorm(0.75) * sigma_i, # tenere solo i valori aggiustati 
       
       val_pse = pmax(1e-5, pmin(1 - 1e-5, (0.5 - gamma_i) / (1 - gamma_i - lambda_i))),
       k_i     = qnorm(val_pse) * sigma_i,
@@ -178,7 +182,7 @@ fit_GLM <- function(iter, sim) {
     tibble(iter = iter, method = "GLM",
            fit_sample_mean_pse = m_pse, fit_sample_mean_jnd = m_jnd,
            fit_sample_mean_pse_adj = m_pse, fit_sample_mean_jnd_adj = m_jnd, 
-           fit_sample_mean_gamma = 0, fit_sample_mean_lambda = 0, # Lapse-free
+           fit_sample_mean_gamma = 0, fit_sample_mean_lambda = 0, 
            fit_pop_pse = m_pse, fit_pop_jnd = m_jnd, 
            t_pse_stat = as.numeric(t_pse$statistic), t_pse_p = t_pse$p.value,
            t_jnd_stat = as.numeric(t_jnd$statistic), t_jnd_p = t_jnd$p.value, SSE = sse_glm,
@@ -218,6 +222,7 @@ fit_GNM <- function(iter, sim) {
     lambdas <- params_gnm_clean$p_lambda
     k_vals <- qnorm(pmax(1e-5, pmin(1 - 1e-5, (0.5 - gammas) / (1 - gammas - lambdas)))) * sigmas
     
+    # togliere e calcolare i valori aggiustati nella funzione gnlm_functions_psejnd.R
     jnd_adj_vals <- qnorm(pmax(1e-5, pmin(1 - 1e-5, (0.75 - gammas) / (1 - gammas - lambdas)))) * sigmas - k_vals
     m_pse_adj <- mean(params_gnm_clean$pse + k_vals, na.rm = TRUE)
     m_jnd_adj <- mean(jnd_adj_vals, na.rm = TRUE)
@@ -248,7 +253,7 @@ fit_GLMM <- function(iter, sim) {
     tibble(iter = iter, method = "GLMM",
            fit_sample_mean_pse = m_pse, fit_sample_mean_jnd = m_jnd,
            fit_sample_mean_pse_adj = m_pse, fit_sample_mean_jnd_adj = m_jnd, 
-           fit_sample_mean_gamma = 0, fit_sample_mean_lambda = 0, # Lapse-free
+           fit_sample_mean_gamma = 0, fit_sample_mean_lambda = 0, 
            fit_pop_pse = as.numeric(-fe["(Intercept)"] / fe["X"]), fit_pop_jnd = as.numeric(qnorm(0.75) / fe["X"]),
            t_pse_stat = NA_real_, t_pse_p = NA_real_, t_jnd_stat = NA_real_, t_jnd_p = NA_real_, SSE = sum(residuals(glmm_fit, type = "response")^2),
            true_sample_gamma = sim$true_sample_gamma, true_sample_lambda = sim$true_sample_lambda)
@@ -269,7 +274,7 @@ fit_BHGLM <- function(iter, sim) {
     tibble(iter = iter, method = "BH-GLM",
            fit_sample_mean_pse = p_samp$pse, fit_sample_mean_jnd = p_samp$jnd,
            fit_sample_mean_pse_adj = p_samp$pse, fit_sample_mean_jnd_adj = p_samp$jnd, 
-           fit_sample_mean_gamma = 0, fit_sample_mean_lambda = 0, # Lapse-free
+           fit_sample_mean_gamma = 0, fit_sample_mean_lambda = 0, 
            fit_pop_pse = p_pop$pse, fit_pop_jnd = p_pop$jnd,
            t_pse_stat = NA_real_, t_pse_p = NA_real_, t_jnd_stat = NA_real_, t_jnd_p = NA_real_, SSE = stan_sse(fit, datistan$y, datistan$n),
            true_sample_gamma = sim$true_sample_gamma, true_sample_lambda = sim$true_sample_lambda)
@@ -286,8 +291,8 @@ fit_BHGNM <- function(iter, sim) {
     fit <- sampling(stan_bhgnm, data = datistan, chains = 3, warmup = 3000, iter = 5000, cores = 3, refresh = 0, init = list(init_fn(), init_fn(), init_fn()))
     p_samp     <- stan_params(fit, param_pse = "pse", param_jnd = "jnd")
     p_pop      <- stan_pop_params(fit, param_pse = "PSE", param_jnd = "JND")
-    p_samp_adj <- stan_params_adjusted(fit)
-    p_asymp    <- stan_asymptotes(fit) # Extract estimated asymptotes
+    p_samp_adj <- stan_params_adjusted(fit) # togliere e aggiustare direttamente in Stan
+    p_asymp    <- stan_asymptotes(fit) 
     
     tibble(iter = iter, method = "BH-GNM",
            fit_sample_mean_pse = p_samp$pse, fit_sample_mean_jnd = p_samp$jnd,
@@ -329,43 +334,52 @@ while (any(n_done < n_target)) {
 # ============================================================
 # Post-Processing & Tables
 # ============================================================
-results <- bind_rows(lapply(results_list, bind_rows))
+results <- bind_rows(lapply(results_list, bind_rows)) %>%
+  mutate(
+    bias_samp_pse     = fit_sample_mean_pse - true_sample_pse,
+    bias_samp_jnd     = fit_sample_mean_jnd - true_sample_jnd,
+    bias_samp_pse_adj = fit_sample_mean_pse_adj - true_sample_pse_adj,
+    bias_samp_jnd_adj = fit_sample_mean_jnd_adj - true_sample_jnd_adj,
+    bias_gamma        = fit_sample_mean_gamma - true_sample_gamma,
+    bias_lambda       = fit_sample_mean_lambda - true_sample_lambda,
+    bias_pop_pse      = fit_pop_pse - true_fixeff_pse,
+    bias_pop_jnd      = fit_pop_jnd - true_fixeff_jnd,
+    bias_pop_pse_adj  = fit_pop_pse - true_fixeff_pse_adj,
+    bias_pop_jnd_adj  = fit_pop_jnd - true_fixeff_jnd_adj
+  )
 
-# ============================================================
-# Summary Tables with Dual Targets and Asymptotes
-# ============================================================
 summary_table <- results %>%
   group_by(method) %>%
   summarise(
     # --- Sample Level: Simplified ---
-    bias_samp_pse       = mean(fit_sample_mean_pse - true_sample_pse, na.rm = TRUE),
-    rmse_samp_pse       = sqrt(mean((fit_sample_mean_pse - true_sample_pse)^2, na.rm = TRUE)),
-    bias_samp_jnd       = mean(fit_sample_mean_jnd - true_sample_jnd, na.rm = TRUE),
-    rmse_samp_jnd       = sqrt(mean((fit_sample_mean_jnd - true_sample_jnd)^2, na.rm = TRUE)),
+    bias_samp_pse       = mean(bias_samp_pse, na.rm = TRUE),
+    rmse_samp_pse       = sqrt(mean(bias_samp_pse^2, na.rm = TRUE)),
+    bias_samp_jnd       = mean(bias_samp_jnd, na.rm = TRUE),
+    rmse_samp_jnd       = sqrt(mean(bias_samp_jnd^2, na.rm = TRUE)),
     
     # --- Sample Level: Adjusted ---
-    bias_samp_pse_adj   = mean(fit_sample_mean_pse_adj - true_sample_pse_adj, na.rm = TRUE),
-    rmse_samp_pse_adj   = sqrt(mean((fit_sample_mean_pse_adj - true_sample_pse_adj)^2, na.rm = TRUE)),
-    bias_samp_jnd_adj   = mean(fit_sample_mean_jnd_adj - true_sample_jnd_adj, na.rm = TRUE),
-    rmse_samp_jnd_adj   = sqrt(mean((fit_sample_mean_jnd_adj - true_sample_jnd_adj)^2, na.rm = TRUE)),
+    bias_samp_pse_adj   = mean(bias_samp_pse_adj, na.rm = TRUE),
+    rmse_samp_pse_adj   = sqrt(mean(bias_samp_pse_adj^2, na.rm = TRUE)),
+    bias_samp_jnd_adj   = mean(bias_samp_jnd_adj, na.rm = TRUE),
+    rmse_samp_jnd_adj   = sqrt(mean(bias_samp_jnd_adj^2, na.rm = TRUE)),
     
-    # --- Asymptotes: Recovery Performance ---
-    bias_gamma          = mean(fit_sample_mean_gamma - true_sample_gamma, na.rm = TRUE),
-    rmse_gamma          = sqrt(mean((fit_sample_mean_gamma - true_sample_gamma)^2, na.rm = TRUE)),
-    bias_lambda         = mean(fit_sample_mean_lambda - true_sample_lambda, na.rm = TRUE),
-    rmse_lambda         = sqrt(mean((fit_sample_mean_lambda - true_sample_lambda)^2, na.rm = TRUE)),
+    # --- Asymptotes ---
+    bias_gamma          = mean(bias_gamma, na.rm = TRUE),
+    rmse_gamma          = sqrt(mean(bias_gamma^2, na.rm = TRUE)),
+    bias_lambda         = mean(bias_lambda, na.rm = TRUE),
+    rmse_lambda         = sqrt(mean(bias_lambda^2, na.rm = TRUE)),
     
     # --- Population Level: Unadjusted vs Unadjusted ---
-    bias_pop_pse        = mean(fit_pop_pse - true_fixeff_pse, na.rm = TRUE),
-    rmse_pop_pse        = sqrt(mean((fit_pop_pse - true_fixeff_pse)^2, na.rm = TRUE)),
-    bias_pop_jnd        = mean(fit_pop_jnd - true_fixeff_jnd, na.rm = TRUE),
-    rmse_pop_jnd        = sqrt(mean((fit_pop_jnd - true_fixeff_jnd)^2, na.rm = TRUE)),
+    bias_pop_pse        = mean(bias_pop_pse, na.rm = TRUE),
+    rmse_pop_pse        = sqrt(mean(bias_pop_pse^2, na.rm = TRUE)),
+    bias_pop_jnd        = mean(bias_pop_jnd, na.rm = TRUE),
+    rmse_pop_jnd        = sqrt(mean(bias_pop_jnd^2, na.rm = TRUE)),
     
     # --- Population Level: Unadjusted vs Adjusted ---
-    bias_pop_pse_adj    = mean(fit_pop_pse - true_fixeff_pse_adj, na.rm = TRUE),
-    rmse_pop_pse_adj    = sqrt(mean((fit_pop_pse - true_fixeff_pse_adj)^2, na.rm = TRUE)),
-    bias_pop_jnd_adj    = mean(fit_pop_jnd - true_fixeff_jnd_adj, na.rm = TRUE),
-    rmse_pop_jnd_adj    = sqrt(mean((fit_pop_jnd - true_fixeff_jnd_adj)^2, na.rm = TRUE)),
+    bias_pop_pse_adj    = mean(bias_pop_pse_adj, na.rm = TRUE),
+    rmse_pop_pse_adj    = sqrt(mean(bias_pop_pse_adj^2, na.rm = TRUE)),
+    bias_pop_jnd_adj    = mean(bias_pop_jnd_adj, na.rm = TRUE),
+    rmse_pop_jnd_adj    = sqrt(mean(bias_pop_jnd_adj^2, na.rm = TRUE)),
     
     mean_SSE            = mean(SSE, na.rm = TRUE),
     .groups = "drop"
@@ -378,30 +392,30 @@ summary_table_pos <- results %>%
   dplyr::filter(fit_sample_mean_pse > 0) %>%
   group_by(method) %>%
   summarise(
-    bias_samp_pse       = mean(fit_sample_mean_pse - true_sample_pse, na.rm = TRUE),
-    rmse_samp_pse       = sqrt(mean((fit_sample_mean_pse - true_sample_pse)^2, na.rm = TRUE)),
-    bias_samp_jnd       = mean(fit_sample_mean_jnd - true_sample_jnd, na.rm = TRUE),
-    rmse_samp_jnd       = sqrt(mean((fit_sample_mean_jnd - true_sample_jnd)^2, na.rm = TRUE)),
+    bias_samp_pse       = mean(bias_samp_pse, na.rm = TRUE),
+    rmse_samp_pse       = sqrt(mean(bias_samp_pse^2, na.rm = TRUE)),
+    bias_samp_jnd       = mean(bias_samp_jnd, na.rm = TRUE),
+    rmse_samp_jnd       = sqrt(mean(bias_samp_jnd^2, na.rm = TRUE)),
     
-    bias_samp_pse_adj   = mean(fit_sample_mean_pse_adj - true_sample_pse_adj, na.rm = TRUE),
-    rmse_samp_pse_adj   = sqrt(mean((fit_sample_mean_pse_adj - true_sample_pse_adj)^2, na.rm = TRUE)),
-    bias_samp_jnd_adj   = mean(fit_sample_mean_jnd_adj - true_sample_jnd_adj, na.rm = TRUE),
-    rmse_samp_jnd_adj   = sqrt(mean((fit_sample_mean_jnd_adj - true_sample_jnd_adj)^2, na.rm = TRUE)),
+    bias_samp_pse_adj   = mean(bias_samp_pse_adj, na.rm = TRUE),
+    rmse_samp_pse_adj   = sqrt(mean(bias_samp_pse_adj^2, na.rm = TRUE)),
+    bias_samp_jnd_adj   = mean(bias_samp_jnd_adj, na.rm = TRUE),
+    rmse_samp_jnd_adj   = sqrt(mean(bias_samp_jnd_adj^2, na.rm = TRUE)),
     
-    bias_gamma          = mean(fit_sample_mean_gamma - true_sample_gamma, na.rm = TRUE),
-    rmse_gamma          = sqrt(mean((fit_sample_mean_gamma - true_sample_gamma)^2, na.rm = TRUE)),
-    bias_lambda         = mean(fit_sample_mean_lambda - true_sample_lambda, na.rm = TRUE),
-    rmse_lambda         = sqrt(mean((fit_sample_mean_lambda - true_sample_lambda)^2, na.rm = TRUE)),
+    bias_gamma          = mean(bias_gamma, na.rm = TRUE),
+    rmse_gamma          = sqrt(mean(bias_gamma^2, na.rm = TRUE)),
+    bias_lambda         = mean(bias_lambda, na.rm = TRUE),
+    rmse_lambda         = sqrt(mean(bias_lambda^2, na.rm = TRUE)),
     
-    bias_pop_pse        = mean(fit_pop_pse - true_fixeff_pse, na.rm = TRUE),
-    rmse_pop_pse        = sqrt(mean((fit_pop_pse - true_fixeff_pse)^2, na.rm = TRUE)),
-    bias_pop_jnd        = mean(fit_pop_jnd - true_fixeff_jnd, na.rm = TRUE),
-    rmse_pop_jnd        = sqrt(mean((fit_pop_jnd - true_fixeff_jnd)^2, na.rm = TRUE)),
+    bias_pop_pse        = mean(bias_pop_pse, na.rm = TRUE),
+    rmse_pop_pse        = sqrt(mean(bias_pop_pse^2, na.rm = TRUE)),
+    bias_pop_jnd        = mean(bias_pop_jnd, na.rm = TRUE),
+    rmse_pop_jnd        = sqrt(mean(bias_pop_jnd^2, na.rm = TRUE)),
     
-    bias_pop_pse_adj    = mean(fit_pop_pse - true_fixeff_pse_adj, na.rm = TRUE),
-    rmse_pop_pse_adj    = sqrt(mean((fit_pop_pse - true_fixeff_pse_adj)^2, na.rm = TRUE)),
-    bias_pop_jnd_adj    = mean(fit_pop_jnd - true_fixeff_jnd_adj, na.rm = TRUE),
-    rmse_pop_jnd_adj    = sqrt(mean((fit_pop_jnd - true_fixeff_jnd_adj)^2, na.rm = TRUE)),
+    bias_pop_pse_adj    = mean(bias_pop_pse_adj, na.rm = TRUE),
+    rmse_pop_pse_adj    = sqrt(mean(bias_pop_pse_adj^2, na.rm = TRUE)),
+    bias_pop_jnd_adj    = mean(bias_pop_jnd_adj, na.rm = TRUE),
+    rmse_pop_jnd_adj    = sqrt(mean(bias_pop_jnd_adj^2, na.rm = TRUE)),
     
     mean_SSE            = mean(SSE, na.rm = TRUE),
     .groups = "drop"
@@ -409,3 +423,30 @@ summary_table_pos <- results %>%
 
 print("--- POSITIVE PSE SUMMARY TABLE ---")
 print(summary_table_pos)
+
+# ============================================================
+# Plotting
+# ============================================================
+violin_n150 <- list()
+violin_n150_filename <- list("violin_150_pse.pdf", "violin_150_jnd.pdf")
+
+violin_n150[["pse"]] <- ggplot(data = results, mapping = aes(y = bias_samp_pse, x = method)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  labs(y = "PSE sample bias", x = NULL) +
+  coord_cartesian(ylim = c(-10, 10))+
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+
+violin_n150[["jnd"]] <- ggplot(data = results, mapping = aes(y = bias_samp_jnd, x = method)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  labs(y = "JND sample bias", x = NULL) +
+  coord_cartesian(ylim = c(-3, 10)) +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+
+map2(.x = violin_n150_filename, .y = violin_n150, .f = ggsave)
+
+library(patchwork)
+combined_plot <- violin_n150[["jnd"]] / violin_n150[["pse"]]
+combined_plot <- combined_plot + plot_annotation(tag_levels = 'A')
+
+ggsave(filename = "combined_violins_vertical.pdf", 
+       plot = combined_plot, device = "pdf", width = 6, height = 9)

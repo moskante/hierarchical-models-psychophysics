@@ -43,17 +43,14 @@ simul_data$Subject <- factor(simul_data$Subject)
 parameters_simul <- simul_data %>%
   group_by(Subject) %>%
   summarise(across(everything(), first),
-            sigma = 1/Slope,
+            pse    = -Intercept / Slope,
+            jnd    = qnorm(0.75) / Slope,
             gamma  = Gamma,
-            lambda = Lambda,
-            k = qnorm((0.5 - gamma) / (1 - gamma - lambda)) * sigma,
-            pse    = -Intercept / Slope + k,
-            jnd    = qnorm((0.75 - gamma) / (1 - gamma - lambda)) * sigma - k
-            ) %>%
+            lambda = Lambda) %>%
   select(Subject, pse, jnd, gamma, lambda)
 
-sample_mean_pse <- mean(parameters_simul$pse)   # sample mean PSE (true reference)
-sample_mean_jnd <- mean(parameters_simul$jnd)   # sample mean JND (true reference)
+PSE <- mean(parameters_simul$pse)   # population mean PSE (true reference)
+JND <- mean(parameters_simul$jnd)   # population mean JND (true reference)
 
 # ---------------------------------------------------------------------------
 # 3. GLM: probit model fit for each subject
@@ -74,8 +71,8 @@ parameters_glm <- PsychParameters(glm_list)
 # One-sample t-tests compare estimated subject-level values against the
 # known generating mean.
 ## inference tests -----
-t_glm_pse <- t.test(parameters_glm$pse, mu = sample_mean_pse)
-t_glm_jnd <- t.test(parameters_glm$jnd, mu = sample_mean_jnd)
+t_glm_pse <- t.test(parameters_glm$pse, mu = PSE)
+t_glm_jnd <- t.test(parameters_glm$jnd, mu = JND)
 
 
 # ---------------------------------------------------------------------------
@@ -95,5 +92,5 @@ parameters_gnm <- simul_data %>%
 
 # Inference: does the GNM recover the true PSE and JND?
 ## inference tests -----
-t_gnm_pse <- t.test(parameters_gnm$pse, mu = sample_mean_pse)
-t_gnm_jnd <- t.test(parameters_gnm$jnd, mu = sample_mean_jnd)
+t_gnm_pse <- t.test(parameters_gnm$pse, mu = PSE)
+t_gnm_jnd <- t.test(parameters_gnm$jnd, mu = JND)

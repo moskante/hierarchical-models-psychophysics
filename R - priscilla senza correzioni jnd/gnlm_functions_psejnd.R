@@ -70,17 +70,14 @@ pstart <- function(x, y){
 # p (default 0.75) sets the quantile used for JND:
 #   JND = qnorm(p) * sigma
 # At p = 0.75, JND equals the 75th-percentile spread of the underlying normal.
-# Adjusted values of pse and jnd
 # ---------------------------------------------------------------------------
 PsychParametersGNM <- function(gnm, p = 0.75){
   pout    <- gnm$coefficients
-  sigma <- pout[2]
-  gamma  <- atan2(pout[3], 1) / pi + 0.5            # back-transform guessing rate
-  lambda <- (1 - gamma) * (atan2(pout[4], 1) / pi + 0.5)  # back-transform lapse rate
-  k = qnorm((0.5 - gamma) / (1 - gamma - lambda)) * sigma
-  pse    = pout[1] + k
-  jnd    = qnorm((p - gamma) / (1 - gamma - lambda)) * sigma - k
-  return(c(pse = pse, jnd = jnd, gamma = gamma, lambda = lambda))
+  pse     <- pout[1]                                  # location = PSE
+  jnd     <- qnorm(p) * pout[2]                       # spread -> JND
+  gamma_i  <- atan2(pout[3], 1) / pi + 0.5            # back-transform guessing rate
+  lambda_i <- (1 - gamma_i) * (atan2(pout[4], 1) / pi + 0.5)  # back-transform lapse rate
+  return(c(pse = pse, jnd = jnd, gamma = gamma_i, lambda = lambda_i))
 }
 
 # ---------------------------------------------------------------------------
