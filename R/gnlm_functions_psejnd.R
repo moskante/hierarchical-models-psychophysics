@@ -72,14 +72,36 @@ pstart <- function(x, y){
 # At p = 0.75, JND equals the 75th-percentile spread of the underlying normal.
 # Adjusted values of pse and jnd
 # ---------------------------------------------------------------------------
+# PsychParametersGNM <- function(gnm, p = 0.75){
+#   pout    <- gnm$coefficients
+#   sigma <- pout[2]
+#   gamma  <- atan2(pout[3], 1) / pi + 0.5            # back-transform guessing rate
+#   lambda <- (1 - gamma) * (atan2(pout[4], 1) / pi + 0.5)  # back-transform lapse rate
+#   k = qnorm((0.5 - gamma) / (1 - gamma - lambda)) * sigma
+#   pse    = pout[1] + k
+#   jnd    = qnorm((p - gamma) / (1 - gamma - lambda)) * sigma - k
+#   return(c(pse = pse, jnd = jnd, gamma = gamma, lambda = lambda))
+# }
+
 PsychParametersGNM <- function(gnm, p = 0.75){
-  pout    <- gnm$coefficients
-  sigma <- pout[2]
-  gamma  <- atan2(pout[3], 1) / pi + 0.5            # back-transform guessing rate
+  pout   <- gnm$coefficients
+  sigma  <- pout[2]
+  gamma  <- atan2(pout[3], 1) / pi + 0.5                  # back-transform guessing rate
   lambda <- (1 - gamma) * (atan2(pout[4], 1) / pi + 0.5)  # back-transform lapse rate
-  k = qnorm((0.5 - gamma) / (1 - gamma - lambda)) * sigma
-  pse    = pout[1] + k
-  jnd    = qnorm((p - gamma) / (1 - gamma - lambda)) * sigma - k
+  
+  # --- Guardrail Numerico per il PSE ---
+  val_pse <- (0.5 - gamma) / (1 - gamma - lambda)
+  val_pse_bounded <- pmax(1e-5, pmin(1 - 1e-5, val_pse))  # impedisce NaN o inf in qnorm
+  k <- qnorm(val_pse_bounded) * sigma
+  
+  pse <- pout[1] + k                                      # pout[1] è la mu latente
+  
+  # --- Guardrail Numerico per il JND ---
+  val_jnd <- (p - gamma) / (1 - gamma - lambda)
+  val_jnd_bounded <- pmax(1e-5, pmin(1 - 1e-5, val_jnd))  # impedisce NaN o inf in qnorm
+  
+  jnd <- qnorm(val_jnd_bounded) * sigma - k
+  
   return(c(pse = pse, jnd = jnd, gamma = gamma, lambda = lambda))
 }
 
