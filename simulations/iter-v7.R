@@ -104,8 +104,8 @@ fit_GLM <- function(iter, sim) {
       summarise(sse = sum((obs_prop - pred_prob)^2, na.rm = TRUE)) %>% pull(sse)
     
     # Test against the absolute fixed-effect latent targets
-    t_pse <- t.test(params_glm$pse, mu = true_fixeff_mu)
-    t_jnd <- t.test(params_glm$jnd, mu = qnorm(0.75) * true_sigma)
+    t_pse <- t.test(params_glm$pse, mu = true_pse)
+    t_jnd <- t.test(params_glm$jnd, mu = true_jnd)
     
     tibble(iter       = iter, 
            method     = "GLM",
