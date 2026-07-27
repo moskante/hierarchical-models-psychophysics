@@ -307,3 +307,12 @@ print(build_summary(results))
 
 print("--- POSITIVE PSE SUMMARY TABLE ---")
 print(build_summary(results %>% dplyr::filter(fit_pse > 0)))
+
+
+print("--- GLOBAL SUMMARY TABLE SHORT ---")
+summary_table <- build_summary(results) %>%
+  dplyr::select(method, bias_pse, rmse_pse, bias_jnd, rmse_jnd, mean_SSE)
+
+xtable::xtable(summary_table, caption = "Summary of the results of the large simulation study",
+               label = "table:res_simul_large")
+

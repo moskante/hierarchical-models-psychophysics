@@ -168,7 +168,7 @@ init_fun <- function(init_pse = 90, init_sigma = 15,
 }
 
 fit_bhgnm <- stan(
-  file   = "Stan/simul_bhgnm.stan",
+  file   = "Stan/simul_bhgnm_GL.stan",
   data   = datistan,
   chains = 3,
   warmup = 3000,
