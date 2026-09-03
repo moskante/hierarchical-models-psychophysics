@@ -1,0 +1,27 @@
+---
+title: "chunk code R"
+author: "AM"
+format:
+  pdf:
+    keep-tex: true
+---
+
+
+```{r}
+#| echo: true
+#| eval: false
+
+PsychParametersGNM <- function(gnm, p = 0.75){
+  pout   <- gnm$coefficients
+  mu <- pout[1]
+  sigma  <- pout[2]
+  gamma  <- atan2(pout[3], 1) / pi + 0.5                  
+  lambda <- (1 - gamma) * (atan2(pout[4], 1) / pi + 0.5)
+  k <- qnorm( (0.5 - gamma) / (1 - gamma - lambda) ) * sigma
+  pse <- mu + k                                      
+  jnd <- qnorm( (p - gamma) / (1 - gamma - lambda) ) * sigma - k
+  return(c(pse = pse, jnd = jnd, gamma = gamma, lambda = lambda))
+}
+
+```
+
