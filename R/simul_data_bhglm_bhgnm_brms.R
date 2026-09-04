@@ -128,20 +128,22 @@ params <- extract_psychophysic_params(fit_bhglm)
 print(params$Population)
 print(params$Subjects)
 
-
+# AM e BL modificare da qui ----------------------------------------------------
+# AM modificato nome dei parametri
+#
 # 3. Modello 2: Bayes Hierarchical GNM (Con Lapses) ----
 # Dovrebbe parzialmente corrispondere al vecchio simul_bhgnm.stan.
 # Questo è il modello "Non-Lineare" che include gli asintoti.
 
 # Definiamo la formula psicometrica: gamma + (1 - gamma - lambda) * Phi(beta0 + beta1*x)
 
-formula_bhgnm <- bf(
-  Longer | trials(Total) ~ gamma + (1 - gamma - lambda) * Phi((X - pse) / sigma),
-  pse ~ 1 + (1 | Subject),
-  sigma ~ 1 + (1 | Subject),
+formula_bhgnm <- brms::bf(
+  Longer | trials(Total) ~ gammaPar + (1 - gammaPar - lambdaPar) * Phi((X - muPar) / sigmaPar), # mu and sigma are Reserved Names in brms
+  muPar ~ 1 + (1 | Subject),
+  sigmaPar ~ 1 + (1 | Subject),
   
-  gamma ~ 0 + Subject,
-  lambda ~ 0 + Subject,
+  gammaPar ~ 0 + Subject,
+  lambdaPar ~ 0 + Subject,
   
   nl = TRUE
 )
@@ -152,16 +154,16 @@ formula_bhgnm <- bf(
 # per garantire che sigma sia positivo e che i rate siano tra 0 e 1.
 priors_bhgnm <- c(
   # Intercette 
-  prior(normal(0, 10), class = "b", nlpar = "pse"), 
-  prior(normal(0, 10), class = "b", nlpar = "sigma", lb = 0),
+  prior(normal(0, 10), class = "b", nlpar = "muPar"), 
+  prior(normal(0, 10), class = "b", nlpar = "sigmaPar", lb = 0),
   
   # Deviazioni standard di gruppo (equivalenti a tau_pse e tau_sigma)
-  prior(cauchy(0, 2.5), class = "sd", nlpar = "pse"),
-  prior(cauchy(0, 2.5), class = "sd", nlpar = "sigma"),
+  prior(cauchy(0, 2.5), class = "sd", nlpar = "muPar"),
+  prior(cauchy(0, 2.5), class = "sd", nlpar = "sigmaPar"),
   
   # Priors per gamma e lambda (limitate tra 0 e 1)
-  prior(uniform(0, 1), class = "b", nlpar = "gamma", lb = 0, ub = 1),
-  prior(uniform(0, 1), class = "b", nlpar = "lambda", lb = 0, ub = 1)
+  prior(uniform(0, 1), class = "b", nlpar = "gammaPar", lb = 0, ub = 1),
+  prior(uniform(0, 1), class = "b", nlpar = "lambdaPar", lb = 0, ub = 1)
 )
 
 # 3. Fit del Modello
@@ -216,52 +218,54 @@ testUniformity(sim_bhgnm)
 testDispersion(sim_bhgnm)
 testOutliers(sim_bhgnm)
 
-extract_psychophysic_params_brms <- function(model) {
-  # 1. Estraiamo gli effetti fissi (Population Level)
-  fe <- fixef(model)
-  
-   pse_group   <- fe["pse_Intercept", "Estimate"]
-  sigma_group <- fe["sigma_Intercept", "Estimate"]
-  jnd_group   <- 0.6745 * sigma_group
-  
-  # 2. Estraiamo i coefficienti specifici per soggetto (Subject Level)
-  subj_coefs <- coef(model)$Subject
-  
-  # 3. Creiamo il dataframe per i soggetti estraendo i valori
-  subjects <- rownames(subj_coefs)
-  
-  subj_results <- data.frame(
-    Subject = subjects,
-    PSE     = subj_coefs[, "Estimate", "pse_Intercept"],
-    Sigma   = subj_coefs[, "Estimate", "sigma_Intercept"]
-  )
-  
-  # Calcoliamo la JND per i soggetti
-  subj_results$JND <- 0.6745 * subj_results$Sigma
-  
-  # Pulizia degli indici di riga
-  rownames(subj_results) <- NULL
-  
-  # 4. Restituiamo i risultati
-  return(list(
-    Population = data.frame(PSE = pse_group, Sigma = sigma_group, JND = jnd_group),
-    Subjects   = subj_results
-  ))
-}
+# AM and BL riparametrizzare da qui --------------------------------------------
 
-
-params <- extract_psychophysic_params_brms(fit_bhgnm_brms)
-print(params$Population)
-print(params$Subjects)
-
-### calcolo dei valori Veri per verifica
-
-true_params <- unique(simul_data[, c("Subject", "Intercept", "Slope")])
-true_params$True_PSE   <- -true_params$Intercept / true_params$Slope
-true_params$True_Sigma <- 1 / true_params$Slope
-true_params$True_JND   <- 0.6745 * true_params$True_Sigma
-
-print(true_params)
-
-
-
+# extract_psychophysic_params_brms <- function(model) {
+#   # 1. Estraiamo gli effetti fissi (Population Level)
+#   fe <- fixef(model)
+#   
+#   mu_group   <- fe["mu_Intercept", "Estimate"]
+#   sigma_group <- fe["sigma_Intercept", "Estimate"]
+#   jnd_group   <- 0.6745 * sigma_group
+#   
+#   # 2. Estraiamo i coefficienti specifici per soggetto (Subject Level)
+#   subj_coefs <- coef(model)$Subject
+#   
+#   # 3. Creiamo il dataframe per i soggetti estraendo i valori
+#   subjects <- rownames(subj_coefs)
+#   
+#   subj_results <- data.frame(
+#     Subject = subjects,
+#     PSE     = subj_coefs[, "Estimate", "pse_Intercept"],
+#     Sigma   = subj_coefs[, "Estimate", "sigma_Intercept"]
+#   )
+#   
+#   # Calcoliamo la JND per i soggetti
+#   subj_results$JND <- 0.6745 * subj_results$Sigma
+#   
+#   # Pulizia degli indici di riga
+#   rownames(subj_results) <- NULL
+#   
+#   # 4. Restituiamo i risultati
+#   return(list(
+#     Population = data.frame(PSE = pse_group, Sigma = sigma_group, JND = jnd_group),
+#     Subjects   = subj_results
+#   ))
+# }
+# 
+# 
+# params <- extract_psychophysic_params_brms(fit_bhgnm_brms)
+# print(params$Population)
+# print(params$Subjects)
+# 
+# ### calcolo dei valori Veri per verifica
+# 
+# true_params <- unique(simul_data[, c("Subject", "Intercept", "Slope")])
+# true_params$True_PSE   <- -true_params$Intercept / true_params$Slope
+# true_params$True_Sigma <- 1 / true_params$Slope
+# true_params$True_JND   <- 0.6745 * true_params$True_Sigma
+# 
+# print(true_params)
+# 
+# 
+# 
