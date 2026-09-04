@@ -83,32 +83,43 @@ pstart <- function(x, y){
 #   return(c(pse = pse, jnd = jnd, gamma = gamma, lambda = lambda))
 # }
 
-PsychParametersGNM <- function(gnm, p = 0.75){
-  pout   <- gnm$coefficients
-  mu <- pout[1]
-  sigma  <- pout[2]
-  gamma  <- atan2(pout[3], 1) / pi + 0.5                  # back-transform guessing rate
-  lambda <- (1 - gamma) * (atan2(pout[4], 1) / pi + 0.5)  # back-transform lapse rate
+PsychParametersGNM <- function(gnm, p = 0.75) {
+  # Safe coefficient extraction
+  pout <- coef(gnm)
   
-  val_pse <- (0.5 - gamma) / (1 - gamma - lambda)
+  if (length(pout) < 4) {
+    stop("The model object must contain at least 4 coefficients (mu, sigma, gamma, lambda).")
+  }
   
-  if(val_pse != pmax(1e-5, pmin(1 - 1e-5, val_pse))){  # this keeps 0 < val_pse < 1
-    val_pse <- pmax(1e-5, pmin(1 - 1e-5, val_pse))  
-    print("Warning: fitted values of gamma or lambda out of range")
-    
-    }
+  mu    <- pout[1]
+  sigma <- pout[2]
   
-  k <- qnorm(val_pse) * sigma
+  # Back-transform parameters from arctan link space
+  gamma  <- atan2(pout[3], 1) / pi + 0.5                  # guessing rate
+  lambda <- (1 - gamma) * (atan2(pout[4], 1) / pi + 0.5)  # lapse rate
   
-  pse <- mu + k                                      
+  denom <- 1 - gamma - lambda
   
-  val_jnd <- (p - gamma) / (1 - gamma - lambda)
-  if(val_jnd != pmax(1e-5, pmin(1 - 1e-5, val_jnd))){ # this keeps 0 < val_jnd < 1
-    val_jnd <- pmax(1e-5, pmin(1 - 1e-5, val_jnd))  
-    print("Warning: fitted values of gamma or lambda out of range")
-    }
-    
-  jnd <- qnorm(val_jnd) * sigma - k
+  # Guard against non-positive denominator (invalid psychometric bounds)
+  if (denom <= 0) {
+    warning("Fitted parameters result in non-positive range (1 - gamma - lambda <= 0).")
+    return(c(pse = NA_real_, jnd = NA_real_, gamma = gamma, lambda = lambda))
+  }
+  
+  prob_pse <- (0.5 - gamma) / denom
+  prob_jnd <- (p - gamma) / denom
+  
+  # Check if effective target performance falls strictly within valid probability bounds (0, 1)
+  eps <- 1e-5
+  if (prob_pse < eps || prob_pse > (1 - eps) || prob_jnd < eps || prob_jnd > (1 - eps)) {
+    warning("Target performance level (0.5 or p) falls outside the asymptotes (gamma, 1 - lambda).")
+    return(c(pse = NA_real_, jnd = NA_real_, gamma = gamma, lambda = lambda))
+  }
+  
+  # Calculate PSE and JND
+  k <- qnorm(prob_pse) * sigma
+  pse <- mu + k
+  jnd <- qnorm(prob_jnd) * sigma - k
   
   return(c(pse = pse, jnd = jnd, gamma = gamma, lambda = lambda))
 }

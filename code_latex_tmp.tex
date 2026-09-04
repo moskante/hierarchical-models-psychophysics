@@ -194,7 +194,9 @@
 
 \begin{document}
 \maketitle
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[boxrule=0pt, frame hidden, enhanced, interior hidden, sharp corners, borderline west={3pt}{0pt}{shadecolor}, breakable]}{\end{tcolorbox}}\fi
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[interior hidden, boxrule=0pt, sharp corners, borderline west={3pt}{0pt}{shadecolor}, frame hidden, breakable, enhanced]}{\end{tcolorbox}}\fi
+
+R chunk page 15
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -209,6 +211,20 @@
 \NormalTok{  jnd }\OtherTok{\textless{}{-}} \FunctionTok{qnorm}\NormalTok{( (p }\SpecialCharTok{{-}}\NormalTok{ gamma) }\SpecialCharTok{/}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{{-}}\NormalTok{ gamma }\SpecialCharTok{{-}}\NormalTok{ lambda) ) }\SpecialCharTok{*}\NormalTok{ sigma }\SpecialCharTok{{-}}\NormalTok{ k}
   \FunctionTok{return}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\AttributeTok{pse =}\NormalTok{ pse, }\AttributeTok{jnd =}\NormalTok{ jnd, }\AttributeTok{gamma =}\NormalTok{ gamma, }\AttributeTok{lambda =}\NormalTok{ lambda))}
 \NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+stan page 19
+
+\begin{Shaded}
+\begin{Highlighting}[]
+  \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\NormalTok{:nsubj) \{}
+\NormalTok{    mu[i] \textasciitilde{} normal(MU, tau\_mu);}
+\NormalTok{    sigma[i] \textasciitilde{} normal(SIGMA, tau\_sigma);}
+    
+\NormalTok{    gamma[i] \textasciitilde{} normal(GAMMA, tau\_gamma) }\KeywordTok{T}\NormalTok{[}\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{];}
+\NormalTok{    lambda\_raw[i] \textasciitilde{} normal(LAMBDA\_tilde, tau\_lambda\_raw) }\KeywordTok{T}\NormalTok{[}\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{];}
+\NormalTok{  \}}
 \end{Highlighting}
 \end{Shaded}
 

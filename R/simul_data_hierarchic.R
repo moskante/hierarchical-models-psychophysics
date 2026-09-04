@@ -157,15 +157,33 @@ testQuantiles(sim_bhglm)
 # ---------------------------------------------------------------------------
 
 # BH-GNM ----
-init_fun <- function(init_pse = 90, init_sigma = 15,
-                     init_gamma = 0.01, init_lambda = 0.01) {
+# init_fun <- function(init_pse = 90, init_sigma = 15,
+#                      init_gamma = 0.01, init_lambda = 0.01) {
+#   list(
+#     pse    = rep(init_pse,    datistan$nsubj),
+#     sigma  = rep(init_sigma,  datistan$nsubj),
+#     gamma  = rep(init_gamma,  datistan$nsubj),
+#     lambda = rep(init_lambda, datistan$nsubj)
+#   )
+# }
+
+init_fun <- function(init_mu = 90, init_sigma = 15,
+                     init_gamma = 0.01, init_lambda_raw = 0.01) {
   list(
-    pse    = rep(init_pse,    datistan$nsubj),
-    sigma  = rep(init_sigma,  datistan$nsubj),
-    gamma  = rep(init_gamma,  datistan$nsubj),
-    lambda = rep(init_lambda, datistan$nsubj)
+    # Subject-level parameters
+    mu         = rep(init_mu, datistan$nsubj),  # mu = pse when gamma == lambda
+    sigma      = rep(init_sigma, datistan$nsubj),
+    gamma      = rep(init_gamma, datistan$nsubj),
+    lambda_raw = rep(init_lambda_raw, datistan$nsubj),
+    
+    # Population-level hyper-parameters (Good practice to initialize as well)
+    MU           = init_mu,
+    SIGMA        = init_sigma,
+    GAMMA        = init_gamma,
+    LAMBDA_tilde = init_lambda_raw
   )
 }
+
 
 fit_bhgnm <- stan(
   file   = "Stan/simul_bhgnm_GL.stan",
