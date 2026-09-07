@@ -97,3 +97,4 @@ parameters_gnm <- simul_data %>%
 ## inference tests -----
 t_gnm_pse <- t.test(parameters_gnm$pse, mu = sample_mean_pse)
 t_gnm_jnd <- t.test(parameters_gnm$jnd, mu = sample_mean_jnd)
+

@@ -182,6 +182,7 @@ process_subject <- function(sub_data) {
 
   # Assemble into a single-row tibble with estimates and bootstrap SEs
   param_tibble <- as_tibble(t(estimates))
+  colnames(param_tibble) <- c("pse", "jnd", "gamma", "lambda")
   se_tibble    <- as_tibble(t(ses))
   colnames(se_tibble) <- c("pse_se", "jnd_se", "gamma_se", "lambda_se")
 
