@@ -11,9 +11,9 @@ data {
 
 parameters {
   real mu[nsubj];       // Latent sensory mean (unadjusted location)
-  real sigma[nsubj];    // Sensory scale (standard deviation)
+  real<lower=0> sigma[nsubj];    // Sensory scale (standard deviation)
   real MU;              // Latent population sensory mean
-  real SIGMA;           // Population sensory scale
+  real<lower=0> SIGMA;           // Population sensory scale
   real<lower=0> tau_mu;
   real<lower=0> tau_sigma;
   real<lower=0> tau_MU;
@@ -91,7 +91,7 @@ model {
     mu[i] ~ normal(MU, tau_mu);
     sigma[i] ~ normal(SIGMA, tau_sigma);
     gamma[i] ~ uniform(0, 1);
-    lambda[i] ~ uniform(0, 1-gamma[i]);
+    lambda[i] ~ uniform(0, 1 - gamma[i]);
   }
   
   // Likelihood

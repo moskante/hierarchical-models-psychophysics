@@ -9,9 +9,9 @@ data {
 
 parameters {
   real pse[nsubj];
-  real sigma[nsubj];
+  real<lower=0> sigma[nsubj];
   real PSE;
-  real SIGMA;
+  real<lower=0> SIGMA;
   real<lower=0> tau_pse;
   real<lower=0> tau_sigma;
   real<lower=0> tau_PSE;

@@ -10,9 +10,9 @@ data {
 parameters {
   // 1. Latent Sensory Parameters (Sensory space)
   real mu[nsubj];       // Individual latent sensory mean (unadjusted location)
-  real sigma[nsubj];    // Individual sensory scale (standard deviation)
+  real <lower=0> sigma[nsubj];    // Individual sensory scale (standard deviation)
   real MU;              // Population latent sensory mean
-  real SIGMA;           // Population sensory scale
+  real <lower=0> SIGMA;           // Population sensory scale
   real<lower=0> tau_mu;
   real<lower=0> tau_sigma;
   real<lower=0> tau_MU;

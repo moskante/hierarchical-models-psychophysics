@@ -130,6 +130,17 @@ y_obs  <- datistan$y
 trials <- datistan$n
 SSE_bhglm <- sum((y_obs / trials - fitted_probs)^2)
 
+# 
+# AM 09 sept
+# parameters_bayes_glm <- summary(fit_bhglm)$summary %>% 
+#   as_tibble(rownames = "params") %>%
+#   dplyr::filter(str_detect(params, "pse|jnd")) %>%
+#   separate(params, into = c("params", "Subject"), sep = "\\[|\\]", remove = FALSE)
+# 
+# hyperparameters_bayes_glm <- summary(fit_bhglm)$summary %>%
+#   as_tibble(rownames = "params") %>%
+#   filter(str_detect(params, "PSE|JND")) 
+
 # DHARMa diagnostics using posterior predictive simulations
 # posteriorPredSim is a (draws x observations) matrix; DHARMa expects
 # (observations x draws), hence the transpose.
