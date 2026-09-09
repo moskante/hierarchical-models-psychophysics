@@ -39,7 +39,8 @@ true_jnd            <- qnorm((0.75 - true_gamma) / (1 - true_gamma - true_lambda
 
 if (run_stan) {
   stan_bhglm <- stan_model(file = "Stan/simul_bhglm.stan")
-  stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm_GL.stan") 
+  # stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm_GL.stan") 
+  stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm.stan") 
 }
 
 # ============================================================
