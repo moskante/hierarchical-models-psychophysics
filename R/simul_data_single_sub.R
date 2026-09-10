@@ -140,8 +140,8 @@ ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
   geom_pointrange(aes(ymin = Lower, ymax = Upper), size = 0.8, linewidth = 1) +
   facet_wrap(~ Parameter, scales = "free_y") +
   scale_color_manual(values = c(
-    "GLM" = "#2b5c8f",
-    "GNM" = "#1b9e77"
+    "GLM" = "#E41A1C",  # Red
+    "GNM" = "#377EB8"   # Blue
   )) +
   labs(
     # title = "GLM vs. GNM Vector Estimates",

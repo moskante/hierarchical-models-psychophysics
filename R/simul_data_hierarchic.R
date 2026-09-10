@@ -339,9 +339,9 @@ ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
   geom_pointrange(aes(ymin = Lower, ymax = Upper), size = 0.8, linewidth = 1) +
   facet_wrap(~ Parameter, scales = "free_y") +
   scale_color_manual(values = c(
-    "GLMM"   = "#2b5c8f",
-    "BH-GLM" = "#d95f02",
-    "BH-GNM" = "#1b9e77"
+    "GLMM"   = "#FF7F00",  # Orange
+    "BH-GLM" = "#984EA3",  # Purple
+    "BH-GNM" = "#4DAF4A"   # Green
   )) +
   labs(
     # title = "Model Comparison: Population Hyperparameters",
