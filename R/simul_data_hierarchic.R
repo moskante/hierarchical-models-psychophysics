@@ -133,7 +133,7 @@ init_fun <- function(init_pse = 90, init_sigma = 15) {
 }
 
 fit_bhglm <- stan(
-  file   = "Stan/simul_bhglm.stan",
+  file   = "Stan/simul_bhglm_lognormal.stan",
   data   = datistan,
   chains = 3,
   warmup = 3000,
@@ -237,8 +237,9 @@ init_fun <- function(init_mu = 90, init_sigma = 15,
 }
 
 fit_bhgnm <- stan(
-  #file   = "Stan/simul_bhgnm_GL.stan",
-  file   = "Stan/simul_bhgnm.stan",
+  #file   = "Stan/simul_bhgnm_halfnormal.stan",
+  #file   = "Stan/simul_bhgnm.stan",
+  file   = "Stan/simul_bhgnm_lognormal.stan",
   data   = datistan,
   chains = 3,
   warmup = 3000,
