@@ -98,3 +98,63 @@ parameters_gnm <- simul_data %>%
 t_gnm_pse <- t.test(parameters_gnm$pse, mu = sample_mean_pse)
 t_gnm_jnd <- t.test(parameters_gnm$jnd, mu = sample_mean_jnd)
 
+# model plot JND and PSE -------------------------------------------------------
+
+# Helper function to compute mean and 95% CI from a numeric vector
+calc_vec_ci <- function(x, param_name, model_name) {
+  tt <- t.test(x)
+  tibble(
+    Parameter = param_name,
+    Estimate  = mean(x, na.rm = TRUE),
+    Lower     = tt$conf.int[1],
+    Upper     = tt$conf.int[2],
+    Model     = model_name
+  )
+}
+
+# 1. Compute summary statistics and CIs for GLM and GNM vectors
+df_combined <- bind_rows(
+  calc_vec_ci(parameters_glm$pse, "PSE", "GLM"),
+  calc_vec_ci(parameters_glm$jnd, "JND", "GLM"),
+  calc_vec_ci(parameters_gnm$pse, "PSE", "GNM"),
+  calc_vec_ci(parameters_gnm$jnd, "JND", "GNM")
+) %>%
+  mutate(Model = factor(Model, levels = c("GLM", "GNM")))
+
+# 2. Define facet-specific sample mean reference values
+df_ref <- tibble(
+  Parameter  = c("PSE", "JND"),
+  yintercept = c(sample_mean_pse, sample_mean_jnd)
+)
+
+# 3. Faceted Comparison Plot
+ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
+  # Sample mean reference lines per facet
+  geom_hline(
+    data = df_ref,
+    aes(yintercept = yintercept),
+    linetype = "dashed",
+    color = "gray40",
+    linewidth = 0.7
+  ) +
+  geom_pointrange(aes(ymin = Lower, ymax = Upper), size = 0.8, linewidth = 1) +
+  facet_wrap(~ Parameter, scales = "free_y") +
+  scale_color_manual(values = c(
+    "GLM" = "#2b5c8f",
+    "GNM" = "#1b9e77"
+  )) +
+  labs(
+    # title = "GLM vs. GNM Vector Estimates",
+    # subtitle = "Points represent sample means with 95% t-distribution CIs; dashed lines show true sample means",
+    x = NULL,
+    y = "Estimate"
+  ) +
+  theme_bw(base_size = 13) +
+  theme(
+    legend.position = "none",
+    strip.background = element_rect(fill = "gray92"),
+    strip.text = element_text(face = "bold", size = 12),
+    axis.text.x = element_text(face = "bold")
+  )
+
+ggsave("example_1_twolevels_estimates_jnd_pse.pdf", path = "Figs")

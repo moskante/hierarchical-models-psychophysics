@@ -27,6 +27,31 @@ set.seed(123)
 simul_data <- PsySimulate(ntrials = 160, nsubjects = 10, guess = TRUE, lapse = TRUE)
 
 # ---------------------------------------------------------------------------
+# 2. Extract true population parameters
+#
+# PsySimulate() stores the generating intercept, slope, gamma, and lambda for
+# each subject as repeated values within each subject's rows. We take the
+# first row per subject to recover these true values, then derive:
+#   PSE = -Intercept / Slope   (stimulus level where P(response) = 0.5)
+#   JND = qnorm(0.75) / Slope  (spread at the 75th quantile of the probit)
+# The mean across subjects becomes the reference value for inference.
+# ---------------------------------------------------------------------------
+parameters_simul <- simul_data %>%
+  group_by(Subject) %>%
+  summarise(across(everything(), first),
+            sigma = 1/Slope,
+            gamma  = Gamma,
+            lambda = Lambda,
+            k = qnorm((0.5 - gamma) / (1 - gamma - lambda)) * sigma,
+            pse    = -Intercept / Slope + k,
+            jnd    = qnorm((0.75 - gamma) / (1 - gamma - lambda)) * sigma - k
+  ) %>%
+  select(Subject, pse, jnd, gamma, lambda)
+
+sample_mean_pse <- mean(parameters_simul$pse)   # sample mean PSE (true reference)
+sample_mean_jnd <- mean(parameters_simul$jnd)   # sample mean JND (true reference)
+
+# ---------------------------------------------------------------------------
 # GLMM: probit mixed model with random intercepts and slopes
 #
 # The fixed effect of X estimates the population-level psychometric slope.
@@ -131,15 +156,15 @@ trials <- datistan$n
 SSE_bhglm <- sum((y_obs / trials - fitted_probs)^2)
 
 # 
-# AM 09 sept
-# parameters_bayes_glm <- summary(fit_bhglm)$summary %>% 
-#   as_tibble(rownames = "params") %>%
-#   dplyr::filter(str_detect(params, "pse|jnd")) %>%
-#   separate(params, into = c("params", "Subject"), sep = "\\[|\\]", remove = FALSE)
-# 
-# hyperparameters_bayes_glm <- summary(fit_bhglm)$summary %>%
-#   as_tibble(rownames = "params") %>%
-#   filter(str_detect(params, "PSE|JND")) 
+# model fit and credible intervals
+parameters_bhglm <- summary(fit_bhglm)$summary %>%
+  as_tibble(rownames = "params") %>%
+  dplyr::filter(str_detect(params, "pse|jnd"), params != "tau_pse") %>%
+  separate(params, into = c("params", "Subject"), sep = "\\[|\\]", remove = FALSE, extra = "drop")
+
+hyperparameters_bhglm <- summary(fit_bhglm)$summary %>%
+  as_tibble(rownames = "params") %>%
+  filter(str_detect(params, "PSE|JND"), params != "tau_PSE")
 
 # DHARMa diagnostics using posterior predictive simulations
 # posteriorPredSim is a (draws x observations) matrix; DHARMa expects
@@ -234,6 +259,16 @@ y_obs  <- datistan$y
 trials <- datistan$n
 SSE_bhgnm <- sum((y_obs / trials - fitted_probs)^2)
 
+# model fit and credible intervals
+parameters_bhgnm <- summary(fit_bhgnm)$summary %>%
+  as_tibble(rownames = "params") %>%
+  dplyr::filter(str_detect(params, "pse|jnd"), params != "tau_pse") %>%
+  separate(params, into = c("params", "Subject"), sep = "\\[|\\]", remove = FALSE, extra = "drop")
+
+hyperparameters_bhgnm <- summary(fit_bhgnm)$summary %>%
+  as_tibble(rownames = "params") %>%
+  filter(str_detect(params, "PSE|JND"), params != "tau_PSE")
+
 ## DHARMa diagnostic ------
 sim_bhgnm <- createDHARMa(
   simulatedResponse        = t(posteriorPredSim),
@@ -246,3 +281,79 @@ testUniformity(sim_bhgnm)
 testDispersion(sim_bhgnm)
 testOutliers(sim_bhgnm)
 testQuantiles(sim_bhgnm)
+
+
+# model plot JND and PSE -------------------------------------------------------
+
+# 1. Clean and format GLMM data
+df_glmm <- glmm_CI[[1]] %>%
+  as_tibble(rownames = "Parameter") %>%
+  rename(
+    Lower = Inferior,
+    Upper = Superior
+  ) %>%
+  mutate(Model = "GLMM")
+
+# 2. Clean and format Bayesian BH-GLM
+df_bhglm <- hyperparameters_bhglm %>%
+  rename(
+    Parameter = params,
+    Estimate  = mean,
+    Lower     = `2.5%`,
+    Upper     = `97.5%`
+  ) %>%
+  select(Parameter, Estimate, Lower, Upper) %>%
+  mutate(Model = "BH-GLM")
+
+# 3. Clean and format Bayesian BH-GNM
+df_bhgnm <- hyperparameters_bhgnm %>%
+  rename(
+    Parameter = params,
+    Estimate  = mean,
+    Lower     = `2.5%`,
+    Upper     = `97.5%`
+  ) %>%
+  select(Parameter, Estimate, Lower, Upper) %>%
+  mutate(Model = "BH-GNM")
+
+# 4. Combine into a single tibble with explicitly ordered model levels
+df_combined <- bind_rows(df_glmm, df_bhglm, df_bhgnm) %>%
+  mutate(Model = factor(Model, levels = c("GLMM", "BH-GLM", "BH-GNM")))
+
+# 5. Define facet-specific sample mean reference values
+df_ref <- tibble(
+  Parameter  = c("PSE", "JND"),
+  yintercept = c(sample_mean_pse, sample_mean_jnd)
+)
+
+# 6. Faceted Comparison Plot with Reference Lines
+ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
+  # Add horizontal sample mean reference lines per facet
+  geom_hline(
+    data = df_ref,
+    aes(yintercept = yintercept),
+    linetype = "dashed",
+    color = "gray40",
+    linewidth = 0.7
+  ) +
+  geom_pointrange(aes(ymin = Lower, ymax = Upper), size = 0.8, linewidth = 1) +
+  facet_wrap(~ Parameter, scales = "free_y") +
+  scale_color_manual(values = c(
+    "GLMM"   = "#2b5c8f",
+    "BH-GLM" = "#d95f02",
+    "BH-GNM" = "#1b9e77"
+  )) +
+  labs(
+    # title = "Model Comparison: Population Hyperparameters",
+    # subtitle = "Points represent mean estimates with 95% CIs/CIs; dashed line shows sample mean",
+    x = NULL,
+    y = "Estimate"
+  ) +
+  theme_bw(base_size = 13) +
+  theme(
+    legend.position = "none",
+    strip.background = element_rect(fill = "gray92"),
+    strip.text = element_text(face = "bold", size = 12),
+    axis.text.x = element_text(face = "bold")
+  )
+ggsave("example_1_hierarchic_estimates_jnd_pse.pdf", path = "Figs")
