@@ -38,9 +38,10 @@ true_pse            <- true_fixeff_mu + true_k_val
 true_jnd            <- qnorm((0.75 - true_gamma) / (1 - true_gamma - true_lambda)) * true_sigma - true_k_val
 
 if (run_stan) {
-  stan_bhglm <- stan_model(file = "Stan/simul_bhglm.stan")
-  # stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm_GL.stan") 
-  stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm.stan") 
+  #stan_bhglm <- stan_model(file = "Stan/simul_bhglm.stan")
+  #stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm.stan") 
+  stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm_lognormal.stan") 
+  stan_bhglm <- stan_model(file = "Stan/simul_bhglm_lognormal.stan") 
 }
 
 # ============================================================
