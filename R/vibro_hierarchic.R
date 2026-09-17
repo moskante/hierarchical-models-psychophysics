@@ -140,7 +140,8 @@ init_fun <- function(init_b0 = -2, init_b1 = 0.1) {
 }
 
 fit_bhglm_vibro <- stan(
-  file   = "Stan/vibro_bhglm.stan",
+  #file   = "Stan/vibro_bhglm.stan",
+  file   = "Stan/vibro_bhglm_lognormal.stan",
   data   = datistan,
   chains = 3,
   warmup = 3000,
@@ -159,6 +160,21 @@ fitted_probs     <- apply(posteriorPredDistr, 2, median)
 y_obs   <- datistan$y
 trials  <- datistan$n
 SSE_bhglm_vibro  <- sum((y_obs / trials - fitted_probs)^2)
+
+
+# model fit and credible intervals
+parameters_bhglm <- summary(fit_bhglm_vibro)$summary %>%
+  as_tibble(rownames = "params") %>%
+  dplyr::filter(str_detect(params, "pse|jnd|b1"), params != "tau_pse", params != "tau_b1",) %>%
+  separate(params, into = c("params", "Subject"), sep = "\\[|\\]", remove = FALSE, extra = "drop")
+
+hyperparameters_bhglm <- summary(fit_bhglm_vibro)$summary %>%
+  as_tibble(rownames = "params") %>%
+  filter(str_detect(params, "PSE|JND|beta1|beta0|diffSlope"), params != "tau_PSE", params != "tau_beta1")
+
+
+
+
 
 ## DHARMa diagnostic ------
 sim_bhglm_vibro <- createDHARMa(
