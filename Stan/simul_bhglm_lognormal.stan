@@ -21,17 +21,11 @@ parameters {
 transformed parameters {
   real<lower=0, upper=1> PI[nobs];
   real jnd[nsubj];
-  
-  // 1. Calculate true population mean on original scale (E[sigma_i])
-  real<lower=0> SIGMA = exp(log_SIGMA + 0.5 * square(tau_sigma));
-  
-  // 2. Derive JND using corrected SIGMA
-  real JND = 0.6745 * SIGMA;
-  
+  real<lower=0> SIGMA = exp(log_SIGMA + 0.5 * square(tau_sigma));  // 1. Calculate true population mean on original scale (E[sigma_i])
+  real JND = 0.6745 * SIGMA;  // 2. Derive JND using corrected SIGMA
   for (i in 1:nsubj) {
     jnd[i] = 0.6745 * sigma[i];
   }
-  
   for (i in 1:nobs) {
     int s = subject[i];
     PI[i] = Phi(-pse[s]/sigma[s] + x[i]/sigma[s]);

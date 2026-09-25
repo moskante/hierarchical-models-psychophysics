@@ -28,20 +28,27 @@ PsychParametersGNM <- function(gnm, p = 0.75){
 ```
 
 
-stan page 19
+stan page 17
 
 ```{stan}
 #| echo: true
 #| eval: false
 #| output.var: "dummy"
 
+transformed parameters {
+  real<lower=0, upper=1> PI[nobs];
+  real jnd[nsubj];
+  real<lower=0> SIGMA = exp(log_SIGMA + 0.5 * square(tau_sigma));  // 1. Calculate true population mean on original scale (E[sigma_i])
+  real JND = 0.6745 * SIGMA;  // 2. Derive JND using corrected SIGMA
   for (i in 1:nsubj) {
-    mu[i] ~ normal(MU, tau_mu);
-    sigma[i] ~ normal(SIGMA, tau_sigma);
-    
-    gamma[i] ~ normal(GAMMA, tau_gamma) T[0, 1];
-    lambda_raw[i] ~ normal(LAMBDA_tilde, tau_lambda_raw) T[0, 1];
+    jnd[i] = 0.6745 * sigma[i];
   }
+  for (i in 1:nobs) {
+    int s = subject[i];
+    PI[i] = Phi(-pse[s]/sigma[s] + x[i]/sigma[s]);
+  }
+}
+
 
 
 ```

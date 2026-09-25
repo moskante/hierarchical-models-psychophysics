@@ -218,10 +218,18 @@ fit_BHGNM <- function(iter, sim) {
     datistan <- list(y = simul_data$Longer, n = simul_data$Total, nobs = nrow(simul_data),
                      x = simul_data$X, subject = as.integer(simul_data$Subject), nsubj = nlevels(simul_data$Subject))
     
-    # UNIFIED MINIMAL INITIALIZATION: identically seeded by sample-level PSE
-    init_fn  <- function() list(
-      mu    = rep(true_sample_pse, datistan$nsubj),
-      sigma = rep(15,              datistan$nsubj)
+    # INIZIALIZZAZIONE ALLINEATA AL BLOCCO 'parameters' STAN
+    init_fn <- function() list(
+      mu        = rep(true_sample_pse, datistan$nsubj),
+      sigma     = rep(15,              datistan$nsubj),
+      MU        = true_sample_pse,
+      log_SIGMA = log(15),
+      tau_mu    = 1.0,
+      tau_sigma = 0.2,
+      tau_MU    = 1.0,
+      tau_SIGMA = 1.0,
+      gamma     = rep(0.01,            datistan$nsubj), # Inizializzazione sicura (> 0)
+      lambda    = rep(0.01,            datistan$nsubj)  # Inizializzazione sicura (1 - gamma - lambda > 0)
     )
     
     fit <- sampling(stan_bhgnm, data = datistan, chains = 3, 

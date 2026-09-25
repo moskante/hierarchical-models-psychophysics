@@ -22,14 +22,14 @@
 # process_subject() and PsychBootGNM().
 
 # ---------------------------------------------------------------------------
-# mu() -- psychometric function evaluated at the current x values
+# PI() -- psychometric function evaluated at the current x values
 #
 # Parameters p are on an unconstrained scale so that gnlr() can optimise
 # freely. gamma and lambda are recovered via the atan2 transformation:
 #   gamma  = atan2(p[3], 1) / pi + 0.5   (maps real line -> (0, 1))
 #   lambda = (1 - gamma) * (atan2(p[4], 1) / pi + 0.5)
 # ---------------------------------------------------------------------------
-mu <- function(p){
+PI <- function(p){
   mu_i    <- p[1]   # PSE (location parameter, same units as x)
   sigma_i <- p[2]   # sigma of the underlying normal; JND = qnorm(0.75)*sigma
   # Back-transform guessing and lapse parameters from unconstrained scale
@@ -162,12 +162,12 @@ process_subject <- function(sub_data) {
   y <- with(sub_data, cbind(Longer, Total - Longer))
   # Expose stimulus values to the global environment for mu() evaluation
   x <- assign("x", sub_data$X, envir = .GlobalEnv)
-  pmu <- pstart(x, y)
+  PIstart <- pstart(x, y)
 
   # Fit the GNM to point estimates
   fit_gnm <- gnlr(y = y,
                   distribution = "binomial",
-                  mu = mu, pmu = pmu, iterlim = 10000)
+                  mu = PI, pmu = PIstart, iterlim = 10000)
 
   # Bootstrap 500 replicates to estimate parameter SEs
   boot_results <- boot::boot(
