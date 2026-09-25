@@ -55,7 +55,8 @@ parameters_glm <- parameters_glm %>%
 ## inference tests -----
 params_glm_wider <- parameters_glm %>%
   select(-pse_se, -jnd_se, -slope_se) %>%
-  pivot_wider(names_from = vibration, values_from = c(pse, jnd, slope))
+  pivot_wider(names_from = vibration, values_from = c(pse, jnd, slope))%>%
+  mutate(slope_diff = slope_32 - slope_0)
 
 # Paired t-test: does the slope differ between 32 Hz and 0 Hz vibration?
 t_glm_slope <- t.test(params_glm_wider$slope_32, params_glm_wider$slope_0, paired = TRUE)
@@ -82,7 +83,66 @@ parameters_gnm$jnd <- qnorm(0.75) / parameters_gnm$slope
 # Wide format for paired comparison
 params_gnm_wider <- parameters_gnm %>%
   select(pse, jnd, slope, vibration, subject) %>%
-  pivot_wider(names_from = vibration, values_from = c(pse, jnd, slope))
+  pivot_wider(names_from = vibration, values_from = c(pse, jnd, slope))%>%
+  mutate(slope_diff = slope_32 - slope_0)
 
 # Paired t-test on GNM slopes
 t_gnm_slope <- t.test(params_gnm_wider$slope_32, params_gnm_wider$slope_0, paired = TRUE)
+
+# model plot JND and PSE -------------------------------------------------------
+
+# Helper function to compute mean and 95% CI from a numeric vector
+calc_vec_ci <- function(x, param_name, model_name) {
+  tt <- t.test(x)
+  tibble(
+    Parameter = param_name,
+    Estimate  = mean(x, na.rm = TRUE),
+    Lower     = tt$conf.int[1],
+    Upper     = tt$conf.int[2],
+    Model     = model_name
+  )
+}
+
+# 1. Compute summary statistics and CIs for GLM and GNM vectors
+df_combined <- bind_rows(
+  calc_vec_ci(params_glm_wider$slope_diff, "Slope Diff", "GLM"),
+  calc_vec_ci(params_gnm_wider$slope_diff, "Slope Diff", "GNM")
+) %>%
+  mutate(Model = factor(Model, levels = c("GLM", "GNM")))
+
+# 2. Define facet-specific sample mean reference values
+df_ref <- tibble(
+  Parameter  = c("Slope Diff"),
+  yintercept = 0
+)
+
+# 3. Faceted Comparison Plot
+ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
+  # Sample mean reference lines per facet
+  geom_hline(
+    data = df_ref,
+    aes(yintercept = yintercept),
+    linetype = "dashed",
+    color = "gray40",
+    linewidth = 0.7
+  ) +
+  geom_pointrange(aes(ymin = Lower, ymax = Upper), size = 0.8, linewidth = 1) +
+  scale_color_manual(values = c(
+    "GLM" = "#E41A1C",  # Red
+    "GNM" = "#377EB8"   # Blue
+  )) +
+  labs(
+    # title = "GLM vs. GNM Vector Estimates",
+    # subtitle = "Points represent sample means with 95% t-distribution CIs; dashed lines show true sample means",
+    x = NULL,
+    y = "Estimate (32 Hz - 0 Hz)"
+  ) +
+  theme_bw(base_size = 13) +
+  theme(
+    legend.position = "none",
+    strip.background = element_rect(fill = "gray92"),
+    strip.text = element_text(face = "bold", size = 12),
+    axis.text.x = element_text(face = "bold")
+  )
+
+ggsave("example_2__twolevels_estimates_diffs.pdf", path = "Figs",width = 6, height = 4)
