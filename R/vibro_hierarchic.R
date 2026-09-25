@@ -83,7 +83,7 @@ fun2mod <- function(mer.obj) {
   return(jndpse)
 }
 
-boot_vibro <- pseMer(glmm_vibro, B = 500, FUN = fun2mod)
+glmm_CI <- pseMer(glmm_vibro, B = 500, FUN = fun2mod)
 
 # ---------------------------------------------------------------------------
 # Prepare data list for Stan
@@ -140,8 +140,8 @@ init_fun <- function(init_b0 = -2, init_b1 = 0.1) {
 }
 
 fit_bhglm_vibro <- stan(
-  #file   = "Stan/vibro_bhglm.stan",
-  file   = "Stan/vibro_bhglm_lognormal.stan",
+  file   = "Stan/vibro_bhglm.stan",
+  #file   = "Stan/vibro_bhglm_lognormal.stan",
   data   = datistan,
   chains = 3,
   warmup = 3000,
@@ -240,3 +240,118 @@ testUniformity(sim_bhgnm_vibro)
 testDispersion(sim_bhgnm_vibro)
 testOutliers(sim_bhgnm_vibro)
 testQuantiles(sim_bhgnm_vibro)
+
+# model fit and credible intervals
+parameters_bhgnm <- summary(fit_bhgnm_vibro)$summary %>%
+  as_tibble(rownames = "params") %>%
+  dplyr::filter(str_detect(params, "pse|jnd|b1"), params != "tau_pse", params != "tau_b1",) %>%
+  separate(params, into = c("params", "Subject"), sep = "\\[|\\]", remove = FALSE, extra = "drop")
+
+hyperparameters_bhgnm <- summary(fit_bhgnm_vibro)$summary %>%
+  as_tibble(rownames = "params") %>%
+  filter(str_detect(params, "PSE|JND|beta1|beta0|diffSlope"), params != "tau_PSE", params != "tau_beta1")
+
+# ============================================================================
+# Model plot: Differences in PSE, JND, and Slope across models
+# ============================================================================
+
+# 1. Clean and format GLMM data
+df_glmm <- glmm_CI[[1]] %>%
+  as_tibble(rownames = "Parameter") %>%
+  rename(
+    Lower = Inferior,
+    Upper = Superior
+  ) %>%
+  # If Estimate is missing in glmm_CI[[1]], calculate or ensure column exists
+  mutate(
+    Estimate = if ("Estimate" %in% names(.)) Estimate else (Lower + Upper) / 2,
+    Model    = "GLMM"
+  )
+
+# 2. Clean and format Bayesian BH-GLM
+df_bhglm <- hyperparameters_bhglm %>%
+  rename(
+    Parameter = params,
+    Estimate  = mean,
+    Lower     = `2.5%`,
+    Upper     = `97.5%`
+  ) %>%
+  select(Parameter, Estimate, Lower, Upper) %>%
+  mutate(Model = "BH-GLM")
+
+# 3. Clean and format Bayesian BH-GNM
+df_bhgnm <- hyperparameters_bhgnm %>%
+  rename(
+    Parameter = params,
+    Estimate  = mean,
+    Lower     = `2.5%`,
+    Upper     = `97.5%`
+  ) %>%
+  select(Parameter, Estimate, Lower, Upper) %>%
+  mutate(Model = "BH-GNM")
+
+# 4. Standardize Parameter Names across all 3 models
+standardize_params <- function(df) {
+  df %>%
+    mutate(
+      Parameter = case_when(
+        str_detect(Parameter, "(?i)delta slope|diffslope|diff_slope") ~ "Delta Slope",
+        str_detect(Parameter, "(?i)delta pse|diffpse|diff_pse")       ~ "Delta PSE",
+        str_detect(Parameter, "(?i)delta jnd|diffjnd|diff_jnd")       ~ "Delta JND",
+        str_detect(Parameter, "^PSE")                                ~ "PSE",
+        str_detect(Parameter, "^JND")                                ~ "JND",
+        TRUE ~ Parameter
+      )
+    )
+}
+
+df_combined <- bind_rows(
+  standardize_params(df_glmm),
+  standardize_params(df_bhglm),
+  standardize_params(df_bhgnm)
+) %>%
+  # Filter only the parameters of interest
+  filter(Parameter %in% c("Delta PSE", "Delta JND", "Delta Slope")) %>%
+  mutate(
+    Model     = factor(Model, levels = c("GLMM", "BH-GLM", "BH-GNM")),
+    Parameter = factor(Parameter, levels = c("Delta PSE", "Delta JND", "Delta Slope"))
+  )%>%
+  dplyr::filter(Parameter == "Delta Slope")
+
+# 5. Define reference lines (0 line for differences across conditions)
+df_ref <- tibble(
+  Parameter  = factor(c("Delta PSE", "Delta JND", "Delta Slope"), 
+                      levels = c("Delta PSE", "Delta JND", "Delta Slope")),
+  yintercept = 0
+  ) %>%
+  dplyr::filter(Parameter == "Delta Slope")
+
+# 6. Faceted Comparison Plot
+ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
+  # Add zero-reference line for condition differences
+  geom_hline(
+    data = df_ref,
+    aes(yintercept = yintercept),
+    linetype = "dashed",
+    color = "gray40",
+    linewidth = 0.7
+  ) +
+  geom_pointrange(aes(ymin = Lower, ymax = Upper), size = 0.8, linewidth = 1) +
+  scale_color_manual(values = c(
+    "GLMM"   = "#FF7F00",  # Orange
+    "BH-GLM" = "#984EA3",  # Purple
+    "BH-GNM" = "#4DAF4A"   # Green
+  )) +
+  labs(
+    x = NULL,
+    y = "Estimate (32 Hz - 0 Hz)"
+  ) +
+  theme_bw(base_size = 13) +
+  theme(
+    legend.position = "none",
+    strip.background = element_rect(fill = "gray92"),
+    strip.text = element_text(face = "bold", size = 12),
+    axis.text.x = element_text(face = "bold")
+  )
+
+ggsave("example_2_hierarchic_estimates_diffs.pdf", path = "Figs", width = 9, height = 4)

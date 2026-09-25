@@ -47,7 +47,7 @@ transformed parameters {
   for (i in 1:nobs){
     int s = subject[i];
     int v = vibration[i] + 1;
-    PI[i]=gamma[s,v] + (1 - gamma[s,v] - lambda[s,v]) * Phi(b0[s,v]+b1[s,v]*x[i];);
+    PI[i]=gamma[s,v] + (1 - gamma[s,v] - lambda[s,v]) * Phi(b0[s,v]+b1[s,v]*x[i]);
   }
 }
 
@@ -66,9 +66,9 @@ model {
   for (i in 1:nsubj){
     for (h in 1:2){
       b0[i,h] ~ normal(beta0[h], tau_b0);
-      b1[i,h] ~ normal(beta1[h], tau_b1);}
+      b1[i,h] ~ normal(beta1[h], tau_b1);
       gamma[i,h] ~ uniform(0, 1);
-      lambda[i,h]~ uniform(0, 1-gamma[i,h]);
+      lambda[i,h]~ uniform(0, 1-gamma[i,h]);}
   }
   
   // Likelihood
