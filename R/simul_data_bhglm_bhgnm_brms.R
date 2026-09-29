@@ -148,6 +148,16 @@ formula_bhgnm <- brms::bf(
   nl = TRUE
 )
 
+# AM nota per essere più fedeli al modello stan dovremmo scrivere
+#
+# formula_bhgnm <- brms::bf(
+#   Longer | trials(Total) ~ gammaPar + (1 - gammaPar - lambdaPar) * Phi((X - muPar) / exp(logSigmaPar)),
+#   muPar ~ 1 + (1 | Subject),
+#   logSigmaPar ~ 1 + (1 | Subject), # exp(logSigmaPar) guarantees positivity
+#   gammaPar ~ 0 + Subject,
+#   lambdaPar ~ 0 + Subject,
+#   nl = TRUE
+# )
 
 # 2. Definiamo le Priors
 # Nota: in brms dobbiamo specificare i limiti inferiori/superiori (lb/ub)

@@ -170,6 +170,7 @@ hyperparameters_bhglm <- summary(fit_bhglm)$summary %>%
 # posteriorPredSim is a (draws x observations) matrix; DHARMa expects
 # (observations x draws), hence the transpose.
 ## DHARMa diagnostic ------
+
 sim_bhglm <- createDHARMa(
   simulatedResponse        = t(posteriorPredSim),
   observedResponse         = datistan$y,
@@ -232,7 +233,7 @@ init_fun <- function(init_mu = 90, init_sigma = 15,
     
     # Population-level hyper-parameters (Good practice to initialize as well)
     MU           = init_mu,
-    SIGMA        = init_sigma
+    log_SIGMA    = log(init_sigma)
   )
 }
 

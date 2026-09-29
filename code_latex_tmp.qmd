@@ -13,16 +13,16 @@ R chunk page 15
 #| echo: true
 #| eval: false
 
-PsychParametersGNM <- function(gnm, p = 0.75){
-  pout   <- gnm$coefficients
-  mu <- pout[1]
-  sigma  <- pout[2]
-  gamma  <- atan2(pout[3], 1) / pi + 0.5                  
-  lambda <- (1 - gamma) * (atan2(pout[4], 1) / pi + 0.5)
-  k <- qnorm( (0.5 - gamma) / (1 - gamma - lambda) ) * sigma
-  pse <- mu + k                                      
-  jnd <- qnorm( (p - gamma) / (1 - gamma - lambda) ) * sigma - k
-  return(c(pse = pse, jnd = jnd, gamma = gamma, lambda = lambda))
+init_fun <- function(init_mu = 90, init_sigma = 15,
+                     init_gamma = 0.01, init_lambda = 0.01) {
+  list(
+    mu         = rep(init_mu, datistan$nsubj),
+    sigma      = rep(init_sigma, datistan$nsubj),
+    gamma      = rep(init_gamma, datistan$nsubj),
+    lambda     = rep(init_lambda, datistan$nsubj),
+    MU           = init_mu,
+    log_SIGMA    = log(init_sigma)
+  )
 }
 
 ```
@@ -35,20 +35,23 @@ stan page 17
 #| eval: false
 #| output.var: "dummy"
 
-transformed parameters {
-  real<lower=0, upper=1> PI[nobs];
-  real jnd[nsubj];
-  real<lower=0> SIGMA = exp(log_SIGMA + 0.5 * square(tau_sigma));  // 1. Calculate true population mean on original scale (E[sigma_i])
-  real JND = 0.6745 * SIGMA;  // 2. Derive JND using corrected SIGMA
-  for (i in 1:nsubj) {
-    jnd[i] = 0.6745 * sigma[i];
+model {
+  MU ~ normal(0, tau_MU);
+  log_SIGMA ~ normal(0, tau_SIGMA);
+  tau_mu ~ cauchy(0,2.5);
+  tau_sigma ~ cauchy(0,2.5);
+  tau_MU ~ cauchy(0,2.5);
+  tau_SIGMA ~ cauchy(0,2.5);
+  for (i in 1:nsubj){
+    mu[i] ~ normal(MU, tau_mu);
+    sigma[i] ~ lognormal(log_SIGMA, tau_sigma);
+    gamma[i] ~ uniform(0, 1);
+    lambda[i] ~ uniform(0, 1 - gamma[i]);
   }
-  for (i in 1:nobs) {
-    int s = subject[i];
-    PI[i] = Phi(-pse[s]/sigma[s] + x[i]/sigma[s]);
+  for (i in 1:nobs){
+    y[i] ~ binomial(n[i], PI[i]);
   }
 }
-
 
 
 ```

@@ -194,22 +194,22 @@
 
 \begin{document}
 \maketitle
-\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[borderline west={3pt}{0pt}{shadecolor}, frame hidden, interior hidden, boxrule=0pt, sharp corners, enhanced, breakable]}{\end{tcolorbox}}\fi
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[boxrule=0pt, sharp corners, borderline west={3pt}{0pt}{shadecolor}, breakable, interior hidden, enhanced, frame hidden]}{\end{tcolorbox}}\fi
 
 R chunk page 15
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{PsychParametersGNM }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(gnm, }\AttributeTok{p =} \FloatTok{0.75}\NormalTok{)\{}
-\NormalTok{  pout   }\OtherTok{\textless{}{-}}\NormalTok{ gnm}\SpecialCharTok{$}\NormalTok{coefficients}
-\NormalTok{  mu }\OtherTok{\textless{}{-}}\NormalTok{ pout[}\DecValTok{1}\NormalTok{]}
-\NormalTok{  sigma  }\OtherTok{\textless{}{-}}\NormalTok{ pout[}\DecValTok{2}\NormalTok{]}
-\NormalTok{  gamma  }\OtherTok{\textless{}{-}} \FunctionTok{atan2}\NormalTok{(pout[}\DecValTok{3}\NormalTok{], }\DecValTok{1}\NormalTok{) }\SpecialCharTok{/}\NormalTok{ pi }\SpecialCharTok{+} \FloatTok{0.5}                  
-\NormalTok{  lambda }\OtherTok{\textless{}{-}}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{{-}}\NormalTok{ gamma) }\SpecialCharTok{*}\NormalTok{ (}\FunctionTok{atan2}\NormalTok{(pout[}\DecValTok{4}\NormalTok{], }\DecValTok{1}\NormalTok{) }\SpecialCharTok{/}\NormalTok{ pi }\SpecialCharTok{+} \FloatTok{0.5}\NormalTok{)}
-\NormalTok{  k }\OtherTok{\textless{}{-}} \FunctionTok{qnorm}\NormalTok{( (}\FloatTok{0.5} \SpecialCharTok{{-}}\NormalTok{ gamma) }\SpecialCharTok{/}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{{-}}\NormalTok{ gamma }\SpecialCharTok{{-}}\NormalTok{ lambda) ) }\SpecialCharTok{*}\NormalTok{ sigma}
-\NormalTok{  pse }\OtherTok{\textless{}{-}}\NormalTok{ mu }\SpecialCharTok{+}\NormalTok{ k                                      }
-\NormalTok{  jnd }\OtherTok{\textless{}{-}} \FunctionTok{qnorm}\NormalTok{( (p }\SpecialCharTok{{-}}\NormalTok{ gamma) }\SpecialCharTok{/}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{{-}}\NormalTok{ gamma }\SpecialCharTok{{-}}\NormalTok{ lambda) ) }\SpecialCharTok{*}\NormalTok{ sigma }\SpecialCharTok{{-}}\NormalTok{ k}
-  \FunctionTok{return}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\AttributeTok{pse =}\NormalTok{ pse, }\AttributeTok{jnd =}\NormalTok{ jnd, }\AttributeTok{gamma =}\NormalTok{ gamma, }\AttributeTok{lambda =}\NormalTok{ lambda))}
+\NormalTok{init\_fun }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(}\AttributeTok{init\_mu =} \DecValTok{90}\NormalTok{, }\AttributeTok{init\_sigma =} \DecValTok{15}\NormalTok{,}
+                     \AttributeTok{init\_gamma =} \FloatTok{0.01}\NormalTok{, }\AttributeTok{init\_lambda =} \FloatTok{0.01}\NormalTok{) \{}
+  \FunctionTok{list}\NormalTok{(}
+    \AttributeTok{mu         =} \FunctionTok{rep}\NormalTok{(init\_mu, datistan}\SpecialCharTok{$}\NormalTok{nsubj),}
+    \AttributeTok{sigma      =} \FunctionTok{rep}\NormalTok{(init\_sigma, datistan}\SpecialCharTok{$}\NormalTok{nsubj),}
+    \AttributeTok{gamma      =} \FunctionTok{rep}\NormalTok{(init\_gamma, datistan}\SpecialCharTok{$}\NormalTok{nsubj),}
+    \AttributeTok{lambda     =} \FunctionTok{rep}\NormalTok{(init\_lambda, datistan}\SpecialCharTok{$}\NormalTok{nsubj),}
+    \AttributeTok{MU           =}\NormalTok{ init\_mu,}
+    \AttributeTok{log\_SIGMA    =} \FunctionTok{log}\NormalTok{(init\_sigma)}
+\NormalTok{  )}
 \NormalTok{\}}
 \end{Highlighting}
 \end{Shaded}
@@ -218,17 +218,21 @@ stan page 17
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\KeywordTok{transformed parameters}\NormalTok{ \{}
-  \DataTypeTok{real}\NormalTok{\textless{}}\KeywordTok{lower}\NormalTok{=}\DecValTok{0}\NormalTok{, }\KeywordTok{upper}\NormalTok{=}\DecValTok{1}\NormalTok{\textgreater{} PI[nobs];}
-  \DataTypeTok{real}\NormalTok{ jnd[nsubj];}
-  \DataTypeTok{real}\NormalTok{\textless{}}\KeywordTok{lower}\NormalTok{=}\DecValTok{0}\NormalTok{\textgreater{} SIGMA = exp(log\_SIGMA + }\FloatTok{0.5}\NormalTok{ * square(tau\_sigma));  }\CommentTok{// 1. Calculate true population mean on original scale (E[sigma\_i])}
-  \DataTypeTok{real}\NormalTok{ JND = }\FloatTok{0.6745}\NormalTok{ * SIGMA;  }\CommentTok{// 2. Derive JND using corrected SIGMA}
-  \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\NormalTok{:nsubj) \{}
-\NormalTok{    jnd[i] = }\FloatTok{0.6745}\NormalTok{ * sigma[i];}
+\KeywordTok{model}\NormalTok{ \{}
+\NormalTok{  MU \textasciitilde{} normal(}\DecValTok{0}\NormalTok{, tau\_MU);}
+\NormalTok{  log\_SIGMA \textasciitilde{} normal(}\DecValTok{0}\NormalTok{, tau\_SIGMA);}
+\NormalTok{  tau\_mu \textasciitilde{} cauchy(}\DecValTok{0}\NormalTok{,}\FloatTok{2.5}\NormalTok{);}
+\NormalTok{  tau\_sigma \textasciitilde{} cauchy(}\DecValTok{0}\NormalTok{,}\FloatTok{2.5}\NormalTok{);}
+\NormalTok{  tau\_MU \textasciitilde{} cauchy(}\DecValTok{0}\NormalTok{,}\FloatTok{2.5}\NormalTok{);}
+\NormalTok{  tau\_SIGMA \textasciitilde{} cauchy(}\DecValTok{0}\NormalTok{,}\FloatTok{2.5}\NormalTok{);}
+  \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\NormalTok{:nsubj)\{}
+\NormalTok{    mu[i] \textasciitilde{} normal(MU, tau\_mu);}
+\NormalTok{    sigma[i] \textasciitilde{} lognormal(log\_SIGMA, tau\_sigma);}
+\NormalTok{    gamma[i] \textasciitilde{} uniform(}\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{);}
+\NormalTok{    lambda[i] \textasciitilde{} uniform(}\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{ {-} gamma[i]);}
 \NormalTok{  \}}
-  \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\NormalTok{:nobs) \{}
-    \DataTypeTok{int}\NormalTok{ s = subject[i];}
-\NormalTok{    PI[i] = Phi({-}pse[s]/sigma[s] + x[i]/sigma[s]);}
+  \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\NormalTok{:nobs)\{}
+\NormalTok{    y[i] \textasciitilde{} binomial(n[i], PI[i]);}
 \NormalTok{  \}}
 \NormalTok{\}}
 \end{Highlighting}
