@@ -13,17 +13,27 @@ R chunk page 15
 #| echo: true
 #| eval: false
 
-init_fun <- function(init_mu = 90, init_sigma = 15,
-                     init_gamma = 0.01, init_lambda = 0.01) {
-  list(
-    mu         = rep(init_mu, datistan$nsubj),
-    sigma      = rep(init_sigma, datistan$nsubj),
-    gamma      = rep(init_gamma, datistan$nsubj),
-    lambda     = rep(init_lambda, datistan$nsubj),
-    MU           = init_mu,
-    log_SIGMA    = log(init_sigma)
-  )
+PI <- function(p){
+  beta_0  <- p[1]   
+  beta_1  <- p[2]   
+  gamma_i  <- atan2(p[3], 1) / pi + 0.5
+  lambda_i <- (1 - gamma_i) * (atan2(p[4], 1) / pi + 0.5)
+  gamma_i + (1 - gamma_i - lambda_i) * pnorm(beta_0 + beta_1 * x)
 }
+
+pstart <- function(x, y){
+  glm_start  <- glm(y ~ x, family = binomial(link = "probit"))
+  coef_start <- coef(glm_start)
+  prop_correct   <- y[, 1] / rowSums(y)
+  gamma_i_start  <- min(min(prop_correct, na.rm = TRUE), 0.99)
+  lambda_i_start <- max(1 - max(prop_correct, na.rm = TRUE), 0.01)
+  beta_0_start   <- coef_start[1]
+  beta_1_start   <- coef_start[2]
+  p3_start <- tan(pi * (gamma_i_start - 0.5))
+  p4_start <- tan(pi * ((lambda_i_start / (1 - gamma_i_start)) - 0.5))
+  return(c(beta_0_start, beta_1_start, p3_start, p4_start))
+}
+
 
 ```
 

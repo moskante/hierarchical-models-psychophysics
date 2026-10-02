@@ -18,11 +18,11 @@
 # via atan2.
 
 # ---------------------------------------------------------------------------
-# mu() -- psychometric function in linear-predictor form
+# PI() -- psychometric function in linear-predictor form
 #
 # P(speed) = gamma + (1 - gamma - lambda) * Phi(beta_0 + beta_1 * speed)
 # ---------------------------------------------------------------------------
-mu <- function(p){
+PI <- function(p){
   beta_0  <- p[1]   # intercept of the linear predictor
   beta_1  <- p[2]   # slope: positive values -> increasing psychometric function
   # Back-transform guessing and lapse parameters from unconstrained scale
@@ -77,7 +77,7 @@ PsychBootGNM_vibro <- function(data, indices, p = 0.75){
   gnm <- tryCatch(
     {
       model <- gnlr(y = y, distribution = "binomial",
-                    mu = mu, pmu = pmu, iterlim = 10000)
+                    mu = PI, pmu = pmu, iterlim = 10000)
       PsychParametersGNM(model, p)
     },
     error = function(e) rep(NA, 4)
@@ -104,7 +104,7 @@ process_subject_vibro <- function(sub_data) {
   # Point estimates from GNM
   fit_gnm <- gnlr(y = y,
                   distribution = "binomial",
-                  mu = mu, pmu = pmu, iterlim = 10000)
+                  mu = PI, pmu = pmu, iterlim = 10000)
 
   # 500 bootstrap replicates for SE and 95% CI
   boot_results <- boot::boot(
