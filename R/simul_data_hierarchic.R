@@ -285,7 +285,7 @@ testOutliers(sim_bhgnm)
 testQuantiles(sim_bhgnm)
 
 
-# model plot JND and PSE -------------------------------------------------------
+# Model plot JND and PSE -------------------------------------------------------
 
 # 1. Clean and format GLMM data
 df_glmm <- glmm_CI[[1]] %>%

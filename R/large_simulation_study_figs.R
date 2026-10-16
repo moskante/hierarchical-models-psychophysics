@@ -55,5 +55,5 @@ ggsave(filename = "combined_violins_bias_lognormal.pdf", path = "Figs",
 combined_plot_fit <- violin_n150[["jnd_fit"]] / violin_n150[["pse_fit"]]
 combined_plot_fit <- combined_plot_fit + plot_annotation(tag_levels = 'A')
 
-ggsave(filename = "combined_violins_estimates_lognormal.pdf", path = "Figs",
+ggsave(filename = "combined_violins_estimates_lognormal.pdf", path = "./Figs",
        plot = combined_plot_fit, device = "pdf", width = 6, height = 9)

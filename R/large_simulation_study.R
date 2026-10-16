@@ -38,8 +38,6 @@ true_pse            <- true_fixeff_mu + true_k_val
 true_jnd            <- qnorm((0.75 - true_gamma) / (1 - true_gamma - true_lambda)) * true_sigma - true_k_val
 
 if (run_stan) {
-  #stan_bhglm <- stan_model(file = "Stan/simul_bhglm.stan")
-  #stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm.stan") 
   stan_bhglm <- stan_model(file = "Stan/simul_bhglm_lognormal.stan")
   stan_bhgnm <- stan_model(file = "Stan/simul_bhgnm_lognormal.stan") 
 }
@@ -252,51 +250,54 @@ fit_BHGNM <- function(iter, sim) {
 # ============================================================
 all_methods  <- if (run_stan) c("GLM", "GNM", "GLMM", "BH-GLM", "BH-GNM") else c("GLM", "GNM", "GLMM")
 results_list <- setNames(vector("list", length(all_methods)), all_methods)
-n_done       <- setNames(integer(length(all_methods)), all_methods)
+n_done       <- 0L
 iter_counter <- 0L
 
-# while (n_done < n_target) {
-#   sim          <- simulate_dataset()
-#   iter_counter <- iter_counter + 1L
-#   
-#   # 1. Prova il fit di tutti i 5 modelli sullo stesso dataset
-#   temp_results <- list(
-#     "GLM"    = fit_GLM(iter_counter, sim),
-#     "GNM"    = fit_GNM(iter_counter, sim),
-#     "GLMM"   = fit_GLMM(iter_counter, sim),
-#     "BH-GLM" = fit_BHGLM(iter_counter, sim),
-#     "BH-GNM" = fit_BHGNM(iter_counter, sim)
-#   )
-#   
-#   # 2. Salva il dataset solo se TUTTI e 5 i modelli hanno un fit valido (!is.null)
-#   if (all(!sapply(temp_results, is.null))) {
-#     n_done <- n_done + 1L
-#     for (m in all_methods) {
-#       results_list[[m]][[n_done]] <- temp_results[[m]]
-#     }
-#   }
-#   
-#   message(sprintf("Attempt %d | Matched Shared Datasets: %d / %d", iter_counter, n_done, n_target))
-# }
-
-while (any(n_done < n_target)) {
-  sim          <- simulate_dataset() # Sim output contains dataset + true_sample_pse
+while (n_done < n_target) {
+  sim          <- simulate_dataset()
   iter_counter <- iter_counter + 1L
-  for (m in all_methods) {
-    if (n_done[m] >= n_target) next
-    row <- switch(m,
-                  "GLM"    = fit_GLM(  iter_counter, sim),
-                  "GNM"    = fit_GNM(  iter_counter, sim),
-                  "GLMM"   = fit_GLMM( iter_counter, sim),
-                  "BH-GLM" = fit_BHGLM(iter_counter, sim),
-                  "BH-GNM" = fit_BHGNM(iter_counter, sim))
-    if (!is.null(row)) {
-      n_done[m] <- n_done[m] + 1L
-      results_list[[m]][[n_done[m]]] <- row
+  
+  # 1. Prova il fit di tutti i 5 modelli sullo stesso dataset
+  temp_results <- list(
+    "GLM"    = fit_GLM(iter_counter, sim),
+    "GNM"    = fit_GNM(iter_counter, sim),
+    "GLMM"   = fit_GLMM(iter_counter, sim),
+    "BH-GLM" = fit_BHGLM(iter_counter, sim),
+    "BH-GNM" = fit_BHGNM(iter_counter, sim)
+  )
+  
+  # 2. Salva solo se TUTTI e 5 convergono (!is.null)
+  if (all(!vapply(temp_results, is.null, logical(1)))) {
+    n_done <- n_done + 1L
+    for (m in all_methods) {
+      results_list[[m]][[n_done]] <- temp_results[[m]]
     }
   }
-  message(sprintf("Attempt %d | successes: %s", iter_counter, paste(names(n_done), n_done, sep = "=", collapse = " | ")))
+  
+  message(sprintf("Attempt %d | Matched Shared Datasets: %d / %d", iter_counter, n_done, n_target))
 }
+
+# n_done       <- setNames(integer(length(all_methods)), all_methods)
+# iter_counter <- 0L
+# 
+# while (any(n_done < n_target)) {
+#   sim          <- simulate_dataset() # Sim output contains dataset + true_sample_pse
+#   iter_counter <- iter_counter + 1L
+#   for (m in all_methods) {
+#     if (n_done[m] >= n_target) next
+#     row <- switch(m,
+#                   "GLM"    = fit_GLM(  iter_counter, sim),
+#                   "GNM"    = fit_GNM(  iter_counter, sim),
+#                   "GLMM"   = fit_GLMM( iter_counter, sim),
+#                   "BH-GLM" = fit_BHGLM(iter_counter, sim),
+#                   "BH-GNM" = fit_BHGNM(iter_counter, sim))
+#     if (!is.null(row)) {
+#       n_done[m] <- n_done[m] + 1L
+#       results_list[[m]][[n_done[m]]] <- row
+#     }
+#   }
+#   message(sprintf("Attempt %d | successes: %s", iter_counter, paste(names(n_done), n_done, sep = "=", collapse = " | ")))
+# }
 
 # ============================================================
 # Post-Processing & Tables
@@ -350,3 +351,88 @@ summary_table <- build_summary(results) %>%
 xtable::xtable(summary_table, caption = "Summary of the results of the large simulation study",
                label = "table:res_simul_large")
 
+# Save violin plots ------------------------------------------------------------
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# 1. Structure the data in long format (if not already formatted)
+# df_sim should contain: 'method' (or 'model'), 'PSE', and 'JND' columns
+df_long <- df_sim %>%
+  pivot_longer(
+    cols = c(JND, PSE),
+    names_to = "parameter",
+    values_to = "estimate"
+  ) %>%
+  mutate(
+    parameter = factor(parameter, levels = c("JND", "PSE")),
+    method    = factor(method, levels = c("GLM", "GNM", "GLMM", "BH-GLM", "BH-GNM"))
+  )
+
+# 2. Ground-truth reference lines for each facet
+true_values <- data.frame(
+  parameter  = factor(c("JND", "PSE"), levels = c("JND", "PSE")),
+  yintercept = c(7.7, 80.0) # Replace with sample means (8.1, 74.6) if preferred
+)
+
+# 3. Model color palette consistent with Figures 5, 6, 8, and 10
+model_palette <- c(
+  "GLM"    = "#F8766D", # Coral Red
+  "GNM"    = "#00BFC4", # Teal Blue
+  "GLMM"   = "#F59E38", # Warm Orange
+  "BH-GLM" = "#C77CFF", # Purple
+  "BH-GNM" = "#00BA38"  # Green
+)
+
+# 4. Generate the consistent plot
+p_violin <- ggplot(df_long, aes(x = method, y = estimate)) +
+  # Add horizontal ground-truth reference line (matching Figures 5 & 6)
+  geom_hline(
+    data = true_values,
+    aes(yintercept = yintercept),
+    linetype = "dashed",
+    color = "grey30",
+    linewidth = 0.55
+  ) +
+  # Violins with inner quartile lines (0.25, median, 0.75)
+  # Set fill = method (with alpha) or fill = "white" for monochrome violins
+  geom_violin(
+    aes(fill = method),
+    trim = FALSE,
+    draw_quantiles = c(0.25, 0.5, 0.75),
+    color = "black",
+    linewidth = 0.45,
+    alpha = 0.45,
+    scale = "width"
+  ) +
+  # Facet layout: side-by-side (ncol = 2) matching Figures 5 & 6
+  # Use ncol = 1 if you prefer keeping the two rows of Figure 11
+  facet_wrap(~ parameter, scales = "free_y", ncol = 2) +
+  scale_fill_manual(values = model_palette) +
+  labs(x = NULL, y = "Estimate") +
+  theme_bw(base_size = 12) +
+  theme(
+    # Panel styling matching Example 1 & 2
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.border     = element_rect(color = "black", fill = NA, linewidth = 0.8),
+    panel.grid.major = element_line(color = "grey90", linewidth = 0.35),
+    panel.grid.minor = element_line(color = "grey95", linewidth = 0.2),
+    
+    # Strip (facet header) styling matching Figures 3, 5, 7
+    strip.background = element_rect(fill = "grey85", color = "black", linewidth = 0.8),
+    strip.text       = element_text(face = "bold", size = 11, color = "black"),
+    
+    # Axis styling
+    axis.text.x      = element_text(color = "black", size = 10, angle = 0, hjust = 0.5),
+    axis.text.y      = element_text(color = "black", size = 10),
+    axis.title.y     = element_text(face = "plain", size = 11, margin = margin(r = 8)),
+    
+    # Hide redundant legend
+    legend.position  = "none"
+  )
+
+# Display or save
+print(p_violin)
+ggsave("large_simulation_violins_v2.pdf", path = "./Figs",
+       plot = p_violin, width = 8.5, height = 4.5, units = "in")
