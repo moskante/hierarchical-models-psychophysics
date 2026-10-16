@@ -359,9 +359,13 @@ library(tidyr)
 
 # 1. Structure the data in long format (if not already formatted)
 # df_sim should contain: 'method' (or 'model'), 'PSE', and 'JND' columns
-df_long <- df_sim %>%
+df_long <- results %>%
+  rename(
+    PSE = fit_pse,
+    JND = fit_jnd
+  )%>%
   pivot_longer(
-    cols = c(JND, PSE),
+    cols = c(PSE, JND),
     names_to = "parameter",
     values_to = "estimate"
   ) %>%
@@ -373,17 +377,17 @@ df_long <- df_sim %>%
 # 2. Ground-truth reference lines for each facet
 true_values <- data.frame(
   parameter  = factor(c("JND", "PSE"), levels = c("JND", "PSE")),
-  yintercept = c(7.7, 80.0) # Replace with sample means (8.1, 74.6) if preferred
+  yintercept = c(true_jnd, true_pse) 
 )
 
 # 3. Model color palette consistent with Figures 5, 6, 8, and 10
-model_palette <- c(
-  "GLM"    = "#F8766D", # Coral Red
-  "GNM"    = "#00BFC4", # Teal Blue
-  "GLMM"   = "#F59E38", # Warm Orange
-  "BH-GLM" = "#C77CFF", # Purple
-  "BH-GNM" = "#00BA38"  # Green
-)
+# model_palette <- c(
+#   "GLM"    = "#F8766D", # Coral Red
+#   "GNM"    = "#00BFC4", # Teal Blue
+#   "GLMM"   = "#F59E38", # Warm Orange
+#   "BH-GLM" = "#C77CFF", # Purple
+#   "BH-GNM" = "#00BA38"  # Green
+# )
 
 # 4. Generate the consistent plot
 p_violin <- ggplot(df_long, aes(x = method, y = estimate)) +
@@ -398,10 +402,11 @@ p_violin <- ggplot(df_long, aes(x = method, y = estimate)) +
   # Violins with inner quartile lines (0.25, median, 0.75)
   # Set fill = method (with alpha) or fill = "white" for monochrome violins
   geom_violin(
-    aes(fill = method),
+    aes(),
     trim = FALSE,
     draw_quantiles = c(0.25, 0.5, 0.75),
     color = "black",
+    fill = "grey",
     linewidth = 0.45,
     alpha = 0.45,
     scale = "width"
@@ -409,7 +414,6 @@ p_violin <- ggplot(df_long, aes(x = method, y = estimate)) +
   # Facet layout: side-by-side (ncol = 2) matching Figures 5 & 6
   # Use ncol = 1 if you prefer keeping the two rows of Figure 11
   facet_wrap(~ parameter, scales = "free_y", ncol = 2) +
-  scale_fill_manual(values = model_palette) +
   labs(x = NULL, y = "Estimate") +
   theme_bw(base_size = 12) +
   theme(
