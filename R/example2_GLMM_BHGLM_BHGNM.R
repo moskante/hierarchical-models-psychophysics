@@ -369,3 +369,70 @@ ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
   )
 
 ggsave("example_2_hierarchic_estimates_diffs.pdf", path = "Figs", width = 9, height = 4, create.dir = TRUE)
+
+# ---------------------------------------------------------------------------
+# Model predictions (Figure 8)
+#
+# Observed proportions of "faster" responses and the psychometric functions
+# predicted by the GLMM (orange), BH-GLM (purple) and BH-GNM (green), for each
+# subject and vibration condition. Bayesian curves use the posterior means of
+# the subject-level parameters. Same layout as the other figures (theme_bw).
+# ---------------------------------------------------------------------------
+speed_grid <- seq(min(vibro_exp3$speed), max(vibro_exp3$speed), length.out = 100)
+subjects   <- levels(vibro_exp3$subject)   # Stan subject index s = position in this vector
+
+obs_vibro <- vibro_exp3 %>%
+  mutate(prop = faster / (faster + slower))
+
+grid_vibro <- expand_grid(subject = subjects, vibration = c("0", "32"), speed = speed_grid)
+
+# GLMM: fixed + random effects of each subject
+pred_glmm <- grid_vibro %>%
+  mutate(prob = predict(glmm_vibro,
+                        newdata = mutate(grid_vibro,
+                                         subject   = factor(subject, levels = subjects),
+                                         vibration = factor(vibration, levels = c("0", "32"))),
+                        type = "response"),
+         Model = "GLMM")
+
+# Bayesian models: posterior means of the subject-level parameters [subject, condition]
+post_mean <- function(draws) apply(draws, c(2, 3), mean)
+
+bayes_curve <- function(samples, model, asymptotes = FALSE) {
+  b0 <- post_mean(samples$b0); b1 <- post_mean(samples$b1)
+  if (asymptotes) { g <- post_mean(samples$gamma); l <- post_mean(samples$lambda) }
+  grid_vibro %>%
+    mutate(s = match(subject, subjects), v = ifelse(vibration == "0", 1, 2),
+           eta  = b0[cbind(s, v)] + b1[cbind(s, v)] * speed,
+           prob = if (asymptotes) g[cbind(s, v)] + (1 - g[cbind(s, v)] - l[cbind(s, v)]) * pnorm(eta) else pnorm(eta),
+           Model = model) %>%
+    select(subject, vibration, speed, prob, Model)
+}
+
+pred_hierar <- bind_rows(
+  pred_glmm,
+  bayes_curve(samples_bhglm_vibro, "BH-GLM"),
+  bayes_curve(samples_bhgnm_vibro, "BH-GNM", asymptotes = TRUE)
+) %>%
+  mutate(Model = factor(Model, levels = c("GLMM", "BH-GLM", "BH-GNM")))
+
+plot_vibro_curves <- function(pred, obs, colors, condition) {
+  ggplot(filter(pred, vibration == condition), aes(x = speed, y = prob)) +
+    geom_line(aes(color = Model), linewidth = 0.6) +
+    geom_point(data = filter(obs, vibration == condition), aes(y = prop), size = 1.5) +
+    facet_wrap(~ subject, ncol = 3) +
+    scale_color_manual(values = colors) +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+    labs(title = paste(condition, "Hz"), x = "speed", y = "Proportion judged faster") +
+    theme_bw(base_size = 13) +
+    theme(legend.position = "none",
+          plot.title = element_text(hjust = 0.5))
+}
+
+colors_hierar <- c("GLMM" = "#FF7F00", "BH-GLM" = "#984EA3", "BH-GNM" = "#4DAF4A")
+fig8 <- gridExtra::arrangeGrob(
+  plot_vibro_curves(pred_hierar, obs_vibro, colors_hierar, "0"),
+  plot_vibro_curves(pred_hierar, obs_vibro, colors_hierar, "32"),
+  ncol = 1)
+
+ggsave("vibro_curves_hierar.pdf", plot = fig8, path = "Figs", width = 7, height = 8, create.dir = TRUE)

@@ -67,7 +67,7 @@ The helper files only define functions. They are sourced by the scripts that nee
 
 ```r
 install.packages(c("tidyverse", "MixedPsy", "gnlm", "boot", "lme4", "lmerTest",
-                   "DHARMa", "rstan", "shinystan", "brms", "posterior", "xtable"))
+                   "DHARMa", "rstan", "shinystan", "brms", "posterior", "xtable", "gridExtra"))
 ```
 
 The Bayesian models need a working C++ toolchain for Stan (Rtools on Windows, Xcode command line tools on macOS, a C++ compiler on Linux). See the [RStan Getting Started guide](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
@@ -112,6 +112,7 @@ The code was tested with R 4.5.3 on Windows 11, and on macOS and Ubuntu, in RStu
 | dplyr | 1.1.4 |
 | stringr | 1.6.0 |
 | xtable | 1.8.8 |
+| gridExtra | 2.3.1 |
 
 ---
 

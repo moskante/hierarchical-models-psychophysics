@@ -146,3 +146,56 @@ ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
   )
 
 ggsave("example_2__twolevels_estimates_diffs.pdf", path = "Figs", width = 6, height = 4, create.dir = TRUE)
+
+# ---------------------------------------------------------------------------
+# Model predictions (Figure 7)
+#
+# Observed proportions of "faster" responses and the psychometric functions
+# predicted by the GLM (red) and the GNM (blue), for each subject and vibration
+# condition. Same layout as the other figures (theme_bw).
+# ---------------------------------------------------------------------------
+speed_grid <- seq(min(vibro_exp3$speed), max(vibro_exp3$speed), length.out = 100)
+
+obs_vibro <- vibro_exp3 %>%
+  mutate(prop = faster / (faster + slower))
+
+# GLM: P = Phi(b0 + b1 * speed), one model per subject x condition
+pred_glm <- tibble(
+  id = names(model_list_vibro),
+  b0 = map_dbl(model_list_vibro, ~ coef(.x$model)[1]),
+  b1 = map_dbl(model_list_vibro, ~ coef(.x$model)[2])
+) %>%
+  separate(id, into = c("subject", "vibration"), sep = "_") %>%
+  crossing(speed = speed_grid) %>%
+  mutate(prob = pnorm(b0 + b1 * speed), Model = "GLM")
+
+# GNM: P = gamma + (1 - gamma - lambda) * Phi(slope * (speed - pse))
+pred_gnm <- parameters_gnm %>%
+  select(subject, vibration, pse, slope, gamma, lambda) %>%
+  mutate(subject = as.character(subject), vibration = as.character(vibration)) %>%
+  crossing(speed = speed_grid) %>%
+  mutate(prob = gamma + (1 - gamma - lambda) * pnorm(slope * (speed - pse)), Model = "GNM")
+
+pred_2lev <- bind_rows(pred_glm, pred_gnm) %>%
+  mutate(Model = factor(Model, levels = c("GLM", "GNM")))
+
+plot_vibro_curves <- function(pred, obs, colors, condition) {
+  ggplot(filter(pred, vibration == condition), aes(x = speed, y = prob)) +
+    geom_line(aes(color = Model), linewidth = 0.6) +
+    geom_point(data = filter(obs, vibration == condition), aes(y = prop), size = 1.5) +
+    facet_wrap(~ subject, ncol = 3) +
+    scale_color_manual(values = colors) +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+    labs(title = paste(condition, "Hz"), x = "speed", y = "Proportion judged faster") +
+    theme_bw(base_size = 13) +
+    theme(legend.position = "none",
+          plot.title = element_text(hjust = 0.5))
+}
+
+colors_2lev <- c("GLM" = "#E41A1C", "GNM" = "#377EB8")
+fig7 <- gridExtra::arrangeGrob(
+  plot_vibro_curves(pred_2lev, obs_vibro, colors_2lev, "0"),
+  plot_vibro_curves(pred_2lev, obs_vibro, colors_2lev, "32"),
+  ncol = 1)
+
+ggsave("vibro_curves_2lev.pdf", plot = fig7, path = "Figs", width = 7, height = 8, create.dir = TRUE)
