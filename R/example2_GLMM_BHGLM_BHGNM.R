@@ -140,9 +140,22 @@ init_fun <- function(init_b0 = -2, init_b1 = 0.1) {
   )
 }
 
+# init_fun for the alternative model Stan/example2_BHGLM_lognormal.stan
+# (non-centred parameterisation: z_b0, z_b1 are the standardised subject effects)
+# init_fun <- function(init_b0 = -2, init_b1 = 0.1) {
+#   list(
+#     z_b0      = matrix(0, datistan$nsubj, 2),
+#     z_b1      = matrix(0, datistan$nsubj, 2),
+#     beta0     = rep(init_b0, 2),
+#     log_beta1 = rep(log(init_b1), 2)
+#   )
+# }
+
 fit_bhglm_vibro <- stan(
   file   = "Stan/example2_BHGLM.stan",
-  # alternative prior (lognormal slopes): file = "Stan/example2_BHGLM_lognormal.stan"
+  # alternative prior (lognormal slopes): use the init_fun above,
+  # file = "Stan/example2_BHGLM_lognormal.stan" and
+  # control = list(adapt_delta = 0.99)
   data   = datistan,
   chains = 3,
   warmup = 3000,
