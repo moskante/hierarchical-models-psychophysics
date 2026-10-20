@@ -5,6 +5,7 @@ library(DHARMa)
 library(tidyr)
 library(stringr)
 library(MixedPsy)
+library(rstan)
 
 set.seed(123)
 

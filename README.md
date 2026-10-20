@@ -1,134 +1,156 @@
 # hierarchical-models-psychophysics
 
-R scripts, Stan files, and data for the article:
+R scripts and Stan programs for the article:
 **"Modeling Psychophysical Data in R: A Comparative Study of Four Model Frameworks"**
 
 ---
 
 ## Overview
 
-This repository accompanies the paper: ``Modeling Psychophysical Data in R: A Comparative Study of Four Model Frameworks'' and provides scripts for analyzing psychophysical data using the statistical frameworks described:
+The scripts reproduce the analyses in the paper. They fit psychometric functions to data from 2AFC discrimination tasks with the model frameworks compared in the article (acronyms as in Table 1 of the paper):
 
-| Model | Type | Scripts (R folder) |
-|-------|------|--------|
-| GLM | Generalized Linear Model (single-subject) | `simul_data_single_sub.R`, `vibro_single_sub.R` |
-| GNM | Generalized Nonlinear Model (single-subject, guessing + lapsing) | `simul_data_single_sub.R`, `vibro_single_sub.R` |
-| GLMM | Generalized Linear Mixed Model (hierarchical, frequentist) | `simul_data_hierarchic.R`, `vibro_hierarchic.R` |
-| BH-GLM / BH-GNM | Bayesian Hierarchical GLM and GNM (guessing + lapsing) | `simul_data_hierarchic.R`, `vibro_hierarchic.R` |
+| Acronym | Model | Level |
+|---------|-------|-------|
+| GLM | Generalized Linear Model | single subject (two-level approach) |
+| GNM | Generalized Non-Linear Model, with guess and lapse rates | single subject (two-level approach) |
+| GLMM | Generalized Linear Mixed Model | hierarchical, frequentist |
+| BH-GLM | Bayesian Hierarchical GLM | hierarchical, Bayesian |
+| BH-GNM | Bayesian Hierarchical GNM, with guess and lapse rates | hierarchical, Bayesian |
 
-The `R/` folder includes scripts for gnm utilities. 
-The Stan models used in `simul_data_hierarchic.R`, `vibro_hierarchic.R` are in the `Stan/` folder. 
-The `simulations/` folder includes code for reproducing analysis on simulated data included in manuscript. 
+The main outcome measures are the **Point of Subjective Equality (PSE)**, the **Just Noticeable Difference (JND)**, and the **slope** of linear predictor $\beta_1$.
 
-
-The key outcome measures for all models are the **Point of Subjective Equality (PSE)** — the stimulus intensity at which both comparison stimuli are judged equally likely — and the **Just Noticeable Difference (JND)** — an index of discrimination sensitivity derived from the psychometric function slope.
+Script names follow the pattern `example<N>_<models>.R`, where `<N>` is the example in the paper and `<models>` are the acronyms of the models fitted in the script.
 
 ---
 
 ## Datasets
 
-- **Simulated data** — generated with `PsySimulate()` from the [MixedPsy](https://cran.r-project.org/package=MixedPsy) R package (10 subjects, 160 trials each, includes guessing and lapsing).
-- **Vibrotactile data** (`vibro_exp3`) — from Dallmann et al. (2015), also bundled in the MixedPsy package. Nine subjects discriminated speed differences under two vibration conditions (0 Hz and 32 Hz).
+No data files are needed: both datasets come from the [MixedPsy](https://CRAN.R-project.org/package=MixedPsy) package.
+
+- **Example 1: simulated data.** Generated with `MixedPsy::PsySimulate()` (10 subjects, 160 trials, non-zero guess and lapse rates). Each script regenerates the same dataset with `set.seed(123)`.
+- **Example 2: experimental data.** `vibro_exp3` from Dallmann et al. (2015), bundled in MixedPsy. Nine participants compared the speed of two tactile motion stimuli under two vibration conditions (0 Hz and 32 Hz).
+- **Large simulation study.** 150 independent datasets simulated with `PsySimulate()`.
 
 ---
 
-## Prerequisites
-
-Install the required R packages before running any script:
-
-```r
-install.packages(c("tidyverse", "MixedPsy", "gnlm", "lme4", "lmerTest",
-                   "DHARMa", "rstan", "shinystan", "boot", "patchwork"))
-```
-
-Stan models require a working C++ toolchain. See the [RStan Getting Started guide](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
-
----
-
-## Repository Structure
+## Repository structure
 
 ```
 R/
-  gnlm_functions_psejnd.R   # GNM helper functions: PSE and JND estimation
-  gnlm_functions_slope.R    # GNM helper functions: slope estimation (vibrotactile)
-  k_correction.R            # Utility: convert p(correct) to sensitivity (k statistic)
-  simul_data_single_sub.R   # Example 1a: GLM and GNM on simulated data
-  simul_data_hierarchic.R   # Example 1b: GLMM, BH-GLM, BH-GNM on simulated data
-  vibro_single_sub.R        # Example 2a: GLM and GNM on vibrotactile data
-  vibro_hierarchic.R        # Example 2b: GLMM, BH-GLM, BH-GNM on vibrotactile data
-  
-simulations/
-  iter.R                    # Monte Carlo simulation: cross-method comparison
+  example1_GLM_GNM.R                 # Example 1: GLM and GNM, per subject
+  example1_GLMM_BHGLM_BHGNM.R        # Example 1: GLMM, BH-GLM and BH-GNM (Stan)
+  example1_BHGLM_BHGNM_brms.R        # Example 1: BH-GLM and BH-GNM with brms
+  example1_BHGLM_brms_lognormal.R    # Example 1: BH-GLM with brms (lognormal sigma), compared with Stan
+  example2_GLM_GNM.R                 # Example 2: GLM and GNM, per subject and condition
+  example2_GLMM_BHGLM_BHGNM.R        # Example 2: GLMM, BH-GLM and BH-GNM (Stan)
+  large_simulation_study.R           # Large simulation study (150 datasets, all five models)
+  GNM_functions_psejnd.R             # helper functions for the GNM (PSE/JND), sourced by the scripts
+  GNM_functions_slope.R              # helper functions for the GNM (slope), sourced by the scripts
 
 Stan/
-  simul_bhglm.stan          # Bayesian Hierarchical GLM (simulated data)
-  simul_bhgnm.stan          # Bayesian Hierarchical GNM (simulated data)
-  vibro_bhglm.stan          # Bayesian Hierarchical GLM (vibrotactile data)
-  vibro_bhgnm.stan          # Bayesian Hierarchical GNM (vibrotactile data)
+  example1_BHGLM.stan                # BH-GLM, Example 1 and large simulation study
+  example1_BHGNM.stan                # BH-GNM, Example 1 and large simulation study
+  example1_BHGNM_halfnormal.stan     # alternative BH-GNM: half-normal sigma, hierarchical gamma/lambda
+  example2_BHGLM.stan                # BH-GLM, Example 2
+  example2_BHGLM_lognormal.stan      # alternative BH-GLM: lognormal prior on the slopes
+  example2_BHGNM.stan                # BH-GNM, Example 2
+
 ```
 
----
-
-## How to Use
-
-### Single-subject analysis (simulated data)
-
-Run `R/simul_data_single_sub.R` to fit GLM and GNM models subject-by-subject on simulated psychophysical data. This script:
-
-1. Generates 10 simulated subjects with known population parameters (PSE, JND, guessing rate, lapse rate).
-2. Fits a probit **GLM** to each subject using `PsychModels()` / `PsychParameters()` from MixedPsy.
-3. Fits a **GNM** to each subject using `gnlm_functions_psejnd.R` (accounts for guessing and lapsing).
-4. Tests whether estimated PSE and JND differ from the true generating values (one-sample *t*-tests).
-
-### Hierarchical analysis (simulated data)
-
-Run `R/simul_data_hierarchic.R` to fit hierarchical models on the same simulated data. This script:
-
-1. Fits a probit **GLMM** with random intercepts and slopes (`lme4::glmer`).
-2. Runs two **Bayesian Hierarchical** models (BH-GLM and BH-GNM) via Stan (`Stan/simul_bhglm.stan`, `Stan/simul_bhgnm.stan`).
-3. Computes residuals and Sum of Squared Errors (SSE) for each model.
-4. Runs DHARMa diagnostic plots to assess model fit.
-
-> **Note:** The Stan models require `Stan/simul_bhglm.stan` and `Stan/simul_bhgnm.stan` to be compiled on first run. Compilation may take a few minutes.
-
-### Single-subject analysis (vibrotactile data)
-
-Run `R/vibro_single_sub.R` to apply GLM and GNM models to the real `vibro_exp3` dataset. This script:
-
-1. Loads `vibro_exp3` from the MixedPsy package (9 subjects, 2 vibration conditions: 0 Hz and 32 Hz).
-2. Fits a probit **GLM** per subject-by-condition combination, extracts PSE, JND, and slope.
-3. Fits a **GNM** using `gnlm_functions_slope.R` (slope-parameterized variant with CI from 500 bootstrap replicates).
-4. Tests whether vibration affects discrimination slope (paired *t*-tests: 32 Hz vs. 0 Hz).
-
-### Hierarchical analysis (vibrotactile data)
-
-Run `R/vibro_hierarchic.R` to fit hierarchical models to the vibrotactile data. This script:
-
-1. Fits a probit **GLMM** with a speed × vibration interaction and random slopes.
-2. Computes bootstrap CIs for PSE, JND, slope, and condition differences via `pseMer()`.
-3. Runs **BH-GLM** and **BH-GNM** in Stan (`Stan/vibro_bhglm.stan`, `Stan/vibro_bhgnm.stan`).
-4. Validates each model with DHARMa residual diagnostics.
-
-### Monte Carlo simulation study
-
-Run `simulations/iter.R` to reproduce the cross-method comparison reported in the paper. This script:
-
-1. Repeatedly simulates new datasets and fits all five models (GLM, GNM, GLMM, BH-GLM, BH-GNM).
-2. Collects exactly 150 successful fits per method (failed fits are retried on a new dataset).
-3. Computes bias, RMSE, and Type I error rates relative to the true generating parameters.
-
-> Set `run_stan <- FALSE` at the top of `iter.R` to skip the Bayesian models for a quick GLM/GNM/GLMM-only run.
+The helper files only define functions. They are sourced by the scripts that need them, so you don't need to run them yourself.
 
 ---
 
-## Helper Files
+## Requirements
 
-- **`R/gnlm_functions_psejnd.R`** — defines the GNM psychometric function, starting-value heuristics, parameter extraction, and bootstrap wrapper used in Examples 1 and the simulation loop. Source this file before using `process_subject()`.
-- **`R/gnlm_functions_slope.R`** — slope-parameterized counterpart for the vibrotactile analysis. Source before using `process_subject_vibro()`.
-- **`R/k_correction.R`** — defines `compute_k()`, which converts proportion correct to the underlying sensitivity metric *k* after correcting for guessing and lapsing.
+### R packages
+
+```r
+install.packages(c("tidyverse", "MixedPsy", "gnlm", "boot", "lme4", "lmerTest",
+                   "DHARMa", "rstan", "shinystan", "brms", "posterior", "xtable"))
+```
+
+The Bayesian models need a working C++ toolchain for Stan. See the [RStan Getting Started guide](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
+
+### Tested versions
+
+The code was tested with R 4.5.3 on Windows 11, and on macOS and Ubuntu, in RStudio. Package versions:
+
+| Package | Version |
+|---------|---------|
+| MixedPsy | 1.3.0 |
+| gnlm | 1.1.2 |
+| boot | 1.3.32 |
+| lme4 | 2.0.6 |
+| lmerTest | 3.2.1 |
+| DHARMa | 0.5.0 |
+| rstan | 2.32.7 |
+| shinystan | 2.7.0 |
+| brms | 2.23.0 |
+| posterior | 1.7.0 |
+| tidyverse | 2.0.0 |
+| ggplot2 | 4.0.1 (≥ 3.5.0 required) |
+| dplyr | 1.1.4 |
+| stringr | 1.6.0 |
+| xtable | 1.8.8 |
 
 ---
 
+## How to run
+
+1. Clone or download the repository.
+2. Set the **repository root** as the working directory, e.g. by opening the folder as an RStudio project, or with `setwd("path/to/hierarchical-models-psychophysics")`. All paths in the scripts (`R/...`, `Stan/...`, `Figs/`) are relative to the root.
+3. Run the scripts in the order below, which follows the paper. Each script is self-contained: it generates or loads its own data, so any script can also be run on its own.
+
+Figures are saved as PDF in a `Figs/` folder, which is created automatically. Figures are not tracked by git.
+
+### Example 1: simulated dataset
+
+**Step 1. `R/example1_GLM_GNM.R`: GLM and GNM (two-level approach)**
+1. Simulates the dataset and recovers the true generating PSE and JND of each subject.
+2. Fits a probit **GLM** to each subject (`MixedPsy::PsychModels()`, `PsychParameters()`).
+3. Fits a **GNM** with guess and lapse rates to each subject (`gnlm::gnlr()`, functions in `R/GNM_functions_psejnd.R`), with bootstrap confidence intervals.
+4. Compares the estimated PSE and JND with the true values (one-sample *t*-tests) and plots the estimates.
+
+**Step 2. `R/example1_GLMM_BHGLM_BHGNM.R`: hierarchical models**
+1. Fits a probit **GLMM** with random intercepts and slopes (`lme4::glmer()`), with bootstrap confidence intervals (`MixedPsy::pseMer()`).
+2. Fits the **BH-GLM** (`Stan/example1_BHGLM.stan`) and the **BH-GNM** (`Stan/example1_BHGNM.stan`) with `rstan`.
+3. Computes the Sum of Squared Errors (SSE) and runs DHARMa diagnostics for each model.
+4. Plots the population-level estimates of the three models.
+
+The script also explains, in comments, how to fit the alternative model `Stan/example1_BHGNM_halfnormal.stan`.
+
+**Step 3. `R/example1_BHGLM_BHGNM_brms.R`: Bayesian hierarchical models with brms**
+Fits the BH-GLM and the BH-GNM with `brms`, the high-level alternative to native Stan code described in the paper, and computes the SSE and DHARMa diagnostics.
+
+**Step 4. `R/example1_BHGLM_brms_lognormal.R`: brms model with lognormal sigma**
+Fits the BH-GLM in `brms` with the same parametrization as the Stan model (lognormal prior on sigma, population-level PSE and JND), fits the Stan model for comparison, and runs DHARMa diagnostics.
+
+### Example 2: experimental dataset (`vibro_exp3`)
+
+**Step 5. `R/example2_GLM_GNM.R`: GLM and GNM (two-level approach)**
+1. Fits a probit **GLM** to each subject and vibration condition, and extracts PSE, JND and slope.
+2. Fits a **GNM** with guess and lapse rates (functions in `R/GNM_functions_slope.R`), with bootstrap confidence intervals.
+3. Tests the effect of vibration on the slope (paired *t*-tests, 32 Hz vs 0 Hz) and plots the estimates.
+
+**Step 6. `R/example2_GLMM_BHGLM_BHGNM.R`: hierarchical models**
+1. Fits a probit **GLMM** with a speed × vibration interaction, with bootstrap confidence intervals for PSE, JND, slope and the differences between conditions (`pseMer()`).
+2. Fits the **BH-GLM** (`Stan/example2_BHGLM.stan`) and the **BH-GNM** (`Stan/example2_BHGNM.stan`).
+3. Computes SSE and DHARMa diagnostics, and plots the differences between conditions.
+
+The script also explains, in comments, how to fit the alternative model `Stan/example2_BHGLM_lognormal.stan`.
+
+### Large simulation study
+
+**Step 7. `R/large_simulation_study.R`**
+1. Simulates new datasets and fits all five models (GLM, GNM, GLMM, BH-GLM, BH-GNM) to each one.
+2. Keeps a dataset only if all five models converge, until 150 datasets have been collected.
+3. Computes bias and RMSE of PSE, JND, guess and lapse rates with respect to the generating values, plus the mean SSE.
+4. Prints the summary tables and saves the violin plots of the estimates.
+
+> This script fits 750 models and takes a long time to run.
+
+---
 
 ## Reference
 

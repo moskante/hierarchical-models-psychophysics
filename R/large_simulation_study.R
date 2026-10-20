@@ -23,7 +23,6 @@ source("R/GNM_functions_psejnd.R")   # contains PsychParametersGNM()
 n_target  <- 150    # number of successful iterations required per method
 ntrials   <- 160
 nsubjects <- 10
-run_stan  <- TRUE   # set FALSE for quick GLM/GNM/GLMM-only runs
 
 # --- True Population Values (Generative Ground Truth) ---
 true_fixeff_mu      <- -(-7) / 0.0875        
@@ -37,10 +36,8 @@ true_k_val          <- qnorm((0.5 - true_gamma) / (1 - true_gamma - true_lambda)
 true_pse            <- true_fixeff_mu + true_k_val
 true_jnd            <- qnorm((0.75 - true_gamma) / (1 - true_gamma - true_lambda)) * true_sigma - true_k_val
 
-if (run_stan) {
-  stan_bhglm <- stan_model(file = "Stan/example1_BHGLM.stan")
-  stan_bhgnm <- stan_model(file = "Stan/example1_BHGNM.stan") 
-}
+stan_bhglm <- stan_model(file = "Stan/example1_BHGLM.stan")
+stan_bhgnm <- stan_model(file = "Stan/example1_BHGNM.stan")
 
 # ============================================================
 # Clean Bayesian Helpers
@@ -248,7 +245,7 @@ fit_BHGNM <- function(iter, sim) {
 # ============================================================
 # Main Loop Execution
 # ============================================================
-all_methods  <- if (run_stan) c("GLM", "GNM", "GLMM", "BH-GLM", "BH-GNM") else c("GLM", "GNM", "GLMM")
+all_methods  <- c("GLM", "GNM", "GLMM", "BH-GLM", "BH-GNM")
 results_list <- setNames(vector("list", length(all_methods)), all_methods)
 n_done       <- 0L
 iter_counter <- 0L
