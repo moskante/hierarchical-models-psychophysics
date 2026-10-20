@@ -28,13 +28,15 @@ set.seed(123)
 simul_data <- PsySimulate(ntrials = 160, nsubjects = 10, guess = TRUE, lapse = TRUE)
 
 # ---------------------------------------------------------------------------
-# 2. Extract true population parameters
+# Extract true population parameters
 #
 # PsySimulate() stores the generating intercept, slope, gamma, and lambda for
 # each subject as repeated values within each subject's rows. We take the
 # first row per subject to recover these true values, then derive:
-#   PSE = -Intercept / Slope   (stimulus level where P(response) = 0.5)
-#   JND = qnorm(0.75) / Slope  (spread at the 75th quantile of the probit)
+#   sigma = 1 / Slope
+#   k     = qnorm((0.5 - gamma) / (1 - gamma - lambda)) * sigma
+#   PSE   = -Intercept / Slope + k            (adjusted for gamma and lambda)
+#   JND   = qnorm((0.75 - gamma) / (1 - gamma - lambda)) * sigma - k
 # The mean across subjects becomes the reference value for inference.
 # ---------------------------------------------------------------------------
 parameters_simul <- simul_data %>%
@@ -97,8 +99,9 @@ testOutliers(simulationOutput)
 #
 # Stan requires a named list. Each element corresponds to a variable declared
 # in the data{} block of the .stan file.
-#   y       -- number of "longer" responses per trial row (binomial successes)
+#   y       -- number of "longer" responses per row (subject x stimulus level)
 #   n       -- total trials per row (binomial denominator)
+#   nobs    -- number of rows
 #   x       -- stimulus level (continuous predictor)
 #   subject -- integer-coded subject ID (1 to nsubj)
 #   nsubj   -- number of unique subjects
@@ -116,9 +119,9 @@ datistan$ncond  <- length(unique(datistan$condition))
 # ---------------------------------------------------------------------------
 # BH-GLM: Bayesian Hierarchical GLM
 #
-# The Stan model (example1_BHGLM.stan) places hierarchical priors on per-subject
-# PSE and sigma (slope), with Cauchy(0, 2.5) hyperpriors on the population
-# standard deviations.
+# The Stan model (example1_BHGLM.stan) places hierarchical priors on the
+# per-subject parameters: normal on pse_i, lognormal on sigma_i (sigma = 1/slope),
+# with half-Cauchy(0, 2.5) priors on the standard deviations.
 #
 # Initialisation: starting the chains near plausible values (PSE ~ 90, sigma ~ 15)
 # improves mixing and reduces the warmup needed.
@@ -147,7 +150,7 @@ fit_bhglm <- stan(
 # Extract posterior predictive distributions for residual diagnostics
 ## Residuals ----
 samples_bhglm      <- extract(fit_bhglm)
-posteriorPredDistr <- samples_bhglm$predProb   # posterior predictive probabilities
+posteriorPredDistr <- samples_bhglm$predProb   # posterior draws of the fitted probabilities
 posteriorPredSim   <- samples_bhglm$y_sim      # posterior predictive counts (for DHARMa)
 
 # SSE: compare median posterior prediction to observed proportions
@@ -156,7 +159,6 @@ y_obs  <- datistan$y
 trials <- datistan$n
 SSE_bhglm <- sum((y_obs / trials - fitted_probs)^2)
 
-# 
 # model fit and credible intervals
 parameters_bhglm <- summary(fit_bhglm)$summary %>%
   as_tibble(rownames = "params") %>%

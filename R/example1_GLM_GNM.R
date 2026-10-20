@@ -36,8 +36,10 @@ simul_data$Subject <- factor(simul_data$Subject)
 # PsySimulate() stores the generating intercept, slope, gamma, and lambda for
 # each subject as repeated values within each subject's rows. We take the
 # first row per subject to recover these true values, then derive:
-#   PSE = -Intercept / Slope   (stimulus level where P(response) = 0.5)
-#   JND = qnorm(0.75) / Slope  (spread at the 75th quantile of the probit)
+#   sigma = 1 / Slope
+#   k     = qnorm((0.5 - gamma) / (1 - gamma - lambda)) * sigma
+#   PSE   = -Intercept / Slope + k            (adjusted for gamma and lambda)
+#   JND   = qnorm((0.75 - gamma) / (1 - gamma - lambda)) * sigma - k
 # The mean across subjects becomes the reference value for inference.
 # ---------------------------------------------------------------------------
 parameters_simul <- simul_data %>%
@@ -87,7 +89,7 @@ t_glm_jnd <- t.test(parameters_glm$jnd, mu = sample_mean_jnd)
 # process_subject() to each split and stacks the results into one tibble.
 # ---------------------------------------------------------------------------
 
-# GNL ----
+# GNM ----
 source("R/GNM_functions_psejnd.R")
 parameters_gnm <- simul_data %>%
   group_split(Subject) %>%

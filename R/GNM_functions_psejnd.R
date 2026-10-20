@@ -13,12 +13,13 @@
 # The full function is:
 #   P(x) = gamma + (1 - gamma - lambda) * Phi((x - mu) / sigma)
 #
-# where Phi is the standard normal CDF, mu is the PSE, and sigma is the
-# standard deviation (inversely related to the slope of the function).
+# where Phi is the standard normal CDF, mu is the latent location and sigma
+# is the standard deviation (inversely related to the slope of the function).
+# The PSE and JND are adjusted for gamma and lambda (see PsychParametersGNM()).
 #
 # NOTE: the variable `x` (stimulus levels for the current subject) must exist
 # in the calling environment before gnlr() is called, because gnlr() evaluates
-# mu() in that environment. This is handled by the assign() calls in
+# PI() in that environment. This is handled by the assign() calls in
 # process_subject() and PsychBootGNM().
 
 # ---------------------------------------------------------------------------
@@ -30,8 +31,8 @@
 #   lambda = (1 - gamma) * (atan2(p[4], 1) / pi + 0.5)
 # ---------------------------------------------------------------------------
 PI <- function(p){
-  mu_i    <- p[1]   # PSE (location parameter, same units as x)
-  sigma_i <- p[2]   # sigma of the underlying normal; JND = qnorm(0.75)*sigma
+  mu_i    <- p[1]   # latent location (same units as x); PSE = mu + k
+  sigma_i <- p[2]   # sigma of the underlying normal
   # Back-transform guessing and lapse parameters from unconstrained scale
   gamma_i  <- atan2(p[3], 1) / pi + 0.5
   lambda_i <- (1 - gamma_i) * (atan2(p[4], 1) / pi + 0.5)
@@ -42,7 +43,7 @@ PI <- function(p){
 # pstart() -- generate sensible starting values for gnlr() optimisation
 #
 # Fits a probit GLM first, then converts its coefficients to the
-# (mu, sigma, p3, p4) parameterisation used by mu() above.
+# (mu, sigma, p3, p4) parameterisation used by PI() above.
 # ---------------------------------------------------------------------------
 pstart <- function(x, y){
   glm_start  <- glm(y ~ x, family = binomial(link = "probit"))
@@ -52,7 +53,7 @@ pstart <- function(x, y){
     coef_start[2] <- 1e-6
   }
   prop_correct    <- y[, 1] / rowSums(y)
-  # Guessing rate start: minimum observed proportion (floored at 0.99)
+  # Guessing rate start: minimum observed proportion (capped at 0.99)
   gamma_i_start   <- min(min(prop_correct, na.rm = TRUE), 0.99)
   # Lapse rate start: distance of maximum observed proportion from 1
   lambda_i_start  <- max(1 - max(prop_correct, na.rm = TRUE), 0.01)
@@ -67,10 +68,11 @@ pstart <- function(x, y){
 # ---------------------------------------------------------------------------
 # PsychParametersGNM() -- extract PSE, JND, gamma, lambda from a fitted gnlr object
 #
-# p (default 0.75) sets the quantile used for JND:
-#   JND = qnorm(p) * sigma
-# At p = 0.75, JND equals the 75th-percentile spread of the underlying normal.
-# Adjusted values of pse and jnd
+# PSE and JND are adjusted for the guessing and lapse rates:
+#   k   = qnorm((0.5 - gamma) / (1 - gamma - lambda)) * sigma
+#   PSE = mu + k
+#   JND = qnorm((p - gamma) / (1 - gamma - lambda)) * sigma - k
+# p (default 0.75) sets the response probability used for the JND.
 # ---------------------------------------------------------------------------
 # PsychParametersGNM <- function(gnm, p = 0.75){
 #   pout    <- gnm$coefficients
@@ -135,13 +137,13 @@ PsychParametersGNM <- function(gnm, p = 0.75) {
 PsychBootGNM <- function(data, indices, p = 0.75){
   data_resampled <- data[indices, ]
   y   <- with(data_resampled, cbind(Longer, Total - Longer))
-  # Expose resampled x to the enclosing environment (required by gnlr/mu)
+  # Expose resampled x to the enclosing environment (required by gnlr/PI)
   x   <- assign("x", data_resampled$X, envir = .GlobalEnv)
   pmu <- pstart(x, y)
   gnm <- tryCatch(
     {
       model <- gnlr(y = y, distribution = "binomial",
-                    mu = mu, pmu = pmu, iterlim = 10000)
+                    mu = PI, pmu = pmu, iterlim = 10000)
       PsychParametersGNM(model, p)
     },
     error = function(e) rep(NA, 4)
@@ -160,7 +162,7 @@ PsychBootGNM <- function(data, indices, p = 0.75){
 # ---------------------------------------------------------------------------
 process_subject <- function(sub_data) {
   y <- with(sub_data, cbind(Longer, Total - Longer))
-  # Expose stimulus values to the global environment for mu() evaluation
+  # Expose stimulus values to the global environment for PI() evaluation
   x <- assign("x", sub_data$X, envir = .GlobalEnv)
   PIstart <- pstart(x, y)
 

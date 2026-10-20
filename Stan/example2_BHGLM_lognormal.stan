@@ -25,9 +25,9 @@ transformed parameters {
   array[nobs] real<lower=0, upper=1> PI;
   vector<lower=0>[2] beta1;
   
-  // 1. Calculate true population mean on original scale (E[sigma_i])
-  beta1 = exp(log_beta1 + 0.5 * square(tau_b1));//
-  //beta1 = exp(log_beta1 );//Median
+  // population mean of b1 on the original scale (E[b1])
+  beta1 = exp(log_beta1 + 0.5 * square(tau_b1));
+  // alternative: population median, beta1 = exp(log_beta1)
   
   // response probabilities for the likelihood
   for (i in 1:nobs){
@@ -43,10 +43,6 @@ model {
   log_beta1 ~ normal(0, tau_beta1);
   
   // Hyperpriors
-   // tau_b0 ~ cauchy(0, 2.5);
-   // tau_b1 ~ cauchy(0, 2.5);
-   // tau_beta0 ~ cauchy(0, 2.5);
-   // tau_beta1 ~ cauchy(0, 2.5);
   tau_b0 ~ normal(0, 2.5);
   tau_b1 ~ normal(0, 1);       // scale 1 because b1 is on the log scale
   tau_beta0 ~ normal(0, 2.5);

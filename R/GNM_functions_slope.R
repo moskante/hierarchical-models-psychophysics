@@ -66,8 +66,8 @@ PsychParametersGNM <- function(gnm, p = 0.75){
 # ---------------------------------------------------------------------------
 # PsychBootGNM_vibro() -- bootstrap statistic for the vibrotactile GNM
 #
-# Differs from PsychBootGNM in GNM_functions_psejnd.R only in using the
-# vibrotactile column names (faster, slower, speed).
+# Same as PsychBootGNM in GNM_functions_psejnd.R, but uses the vibrotactile
+# column names (faster, slower, speed) and the slope parameterisation of this file.
 # ---------------------------------------------------------------------------
 PsychBootGNM_vibro <- function(data, indices, p = 0.75){
   data_resampled <- data[indices, ]

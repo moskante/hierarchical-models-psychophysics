@@ -1,3 +1,17 @@
+# example1_BHGLM_brms_lognormal.R
+#
+# Example 1: BH-GLM fitted with brms, using the same parametrization as the
+# Stan model (lognormal prior on sigma, population-level PSE and JND).
+#
+# Workflow:
+#   1. Simulate the Example 1 dataset (same setup as example1_GLM_GNM.R).
+#   2. Fit the BH-GLM with brms (nonlinear formula plus Stan code via stanvars).
+#   3. Fit the same model in native Stan for comparison.
+#   4. Compute SSE and run DHARMa diagnostics.
+#
+# Required packages: brms, posterior, dplyr, DHARMa, tidyr, stringr, MixedPsy, rstan
+# Stan model:        Stan/example1_BHGLM.stan
+
 library(brms)
 library(posterior)
 library(dplyr)
@@ -111,8 +125,7 @@ hyper_brms <- summarise_draws(
   rhat, ess_bulk, ess_tail
 )
 
-###STAN implementation (comparison scope)
-# BH-GLM ----
+# BH-GLM in native Stan (for comparison with brms) ----
 init_fun <- function(init_pse = 90, init_sigma = 15) {
   list(
     pse   = rep(init_pse,   datistan$nsubj),

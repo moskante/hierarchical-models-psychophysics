@@ -27,7 +27,7 @@ library(shinystan)
 # GLMM: probit mixed model with speed x vibration interaction
 #
 # Fixed effects:
-#   speed            -- main effect of speed (common slope, 0 Hz condition)
+#   speed            -- main effect of speed (baseline slope, 0 Hz)
 #   vibration        -- shift in intercept at 32 Hz
 #   speed:vibration  -- shift in slope at 32 Hz (key test of the vibration effect)
 # Random effects:
@@ -39,7 +39,7 @@ glmm_vibro <- glmer(cbind(faster, slower) ~ speed * vibration + (1 + speed | sub
                     family = binomial(link = "probit"),
                     data   = vibro_exp3)
 
-# Residuals and SSE for model comparison
+# Residuals and SSE (descriptive goodness of fit)
 ## Residuals -----
 residuals_glmm_vibro <- residuals(glmm_vibro, type = "response")
 SSE_glmm_vibro       <- sum(residuals_glmm_vibro^2)
@@ -62,10 +62,10 @@ testQuantiles(simulatedRes_glmm_vibro)
 #   Intercept       = beta_0 (baseline intercept, 0 Hz condition)
 #   speed           = beta_1 (baseline slope, 0 Hz)
 #   vibration32     = beta_2 (intercept shift at 32 Hz)
-#   speed:vibration = beta_4 (slope shift at 32 Hz)
+#   speed:vibration = beta_3 (slope shift at 32 Hz)
 #
 #   PSE_0  = -beta_0 / beta_1
-#   PSE_32 = -(beta_0 + beta_2) / (beta_1 + beta_4)
+#   PSE_32 = -(beta_0 + beta_2) / (beta_1 + beta_3)
 #   JND    = qnorm(0.75) / slope
 # ---------------------------------------------------------------------------
 ## bootstrap -----

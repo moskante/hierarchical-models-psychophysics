@@ -30,7 +30,7 @@ fit_bhglm <- brm(
   iter = 5000, 
   warmup = 3000,
   refresh = 10, 
-  init = 0,               # start from zero to avoid log(0)
+  init = 0,               # initialise all parameters at 0 (unconstrained scale) for stable sampling
   backend = "rstan"       # or "cmdstanr" if installed
 )
 

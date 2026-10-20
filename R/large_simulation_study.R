@@ -27,7 +27,7 @@ nsubjects <- 10
 # --- True Population Values (Generative Ground Truth) ---
 true_fixeff_mu      <- -(-7) / 0.0875        
 
-# Theoretical means of generative CRAN uniform ranges c(0, 0.05)
+# Theoretical means of the PsySimulate() default uniform ranges c(0, 0.05)
 true_gamma          <- 0.025                 
 true_lambda         <- 0.025                 
 true_sigma          <- 1 / 0.0875
@@ -47,7 +47,7 @@ stan_sse <- function(stan_fit, y_obs, trials) {
   sum((y_obs / trials - fitted_probs)^2)
 }
 
-# Super-simplified parameters extraction (no scale factors needed!)
+# Posterior medians of population-level PSE, JND, GAMMA, LAMBDA (0 for BH-GLM)
 extract_stan_all_params <- function(stan_fit) {
   s <- extract(stan_fit)
   
@@ -66,7 +66,7 @@ simulate_dataset <- function() {
                                     lapse     = TRUE)
   simul_data$Subject <- factor(simul_data$Subject)
   
-  # sample-level true PSE of the subjects simulated in this iteration
+  # sample mean of the generating (unadjusted) PSE, used only to initialise the Stan chains
   params_true <- simul_data %>%
     group_by(Subject) %>%
     summarise(
@@ -78,7 +78,7 @@ simulate_dataset <- function() {
       pse_sim = -Intercept_i / Slope_i
     )
   
-  # return the dataset and the sample-level PSE (used for initialization)
+  # return the dataset and the sample-level PSE
   list(
     data            = simul_data,
     true_sample_pse = mean(params_true$pse_sim, na.rm = TRUE)
@@ -100,7 +100,7 @@ fit_GLM <- function(iter, sim) {
       mutate(eta = qnorm(0.75) * (X - pse) / jnd, pred_prob = pnorm(eta), obs_prop = Longer / Total) %>%
       summarise(sse = sum((obs_prop - pred_prob)^2, na.rm = TRUE)) %>% pull(sse)
     
-    # Test against the absolute fixed-effect latent targets
+    # t-tests against the true (adjusted) PSE and JND
     t_pse <- t.test(params_glm$pse, mu = true_pse)
     t_jnd <- t.test(params_glm$jnd, mu = true_jnd)
     
@@ -184,7 +184,7 @@ fit_BHGLM <- function(iter, sim) {
                      nobs = nrow(simul_data), x = simul_data$X, 
                      subject = as.integer(simul_data$Subject), nsubj = nlevels(simul_data$Subject))
     
-    # UNIFIED MINIMAL INITIALIZATION: dynamically seeded by sample-level PSE
+    # initial values: pse set to the sample-level PSE of this dataset
     init_fn  <- function() list(
       pse   = rep(true_sample_pse, datistan$nsubj),
       sigma = rep(15,              datistan$nsubj)
@@ -354,8 +354,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 
-# 1. Structure the data in long format (if not already formatted)
-# df_sim should contain: 'method' (or 'model'), 'PSE', and 'JND' columns
+# 1. Structure the data in long format
 df_long <- results %>%
   rename(
     PSE = fit_pse,
@@ -377,7 +376,7 @@ true_values <- data.frame(
   yintercept = c(true_jnd, true_pse) 
 )
 
-# 3. Model color palette consistent with Figures 5, 6, 8, and 10
+# 3. Model color palette (same as the example figures)
 # model_palette <- c(
 #   "GLM"    = "#F8766D", # Coral Red
 #   "GNM"    = "#00BFC4", # Teal Blue
@@ -388,7 +387,7 @@ true_values <- data.frame(
 
 # 4. Generate the consistent plot
 p_violin <- ggplot(df_long, aes(x = method, y = estimate)) +
-  # Add horizontal ground-truth reference line (matching Figures 5 & 6)
+  # Add horizontal ground-truth reference line
   geom_hline(
     data = true_values,
     aes(yintercept = yintercept),
@@ -408,19 +407,18 @@ p_violin <- ggplot(df_long, aes(x = method, y = estimate)) +
     alpha = 0.45,
     scale = "width"
   ) +
-  # Facet layout: side-by-side (ncol = 2) matching Figures 5 & 6
-  # Use ncol = 1 if you prefer keeping the two rows of Figure 11
+  # Facet layout: side-by-side (ncol = 2); use ncol = 1 for two rows
   facet_wrap(~ parameter, scales = "free_y", ncol = 2) +
   labs(x = NULL, y = "Estimate") +
   theme_bw(base_size = 12) +
   theme(
-    # Panel styling matching Example 1 & 2
+    # Panel styling (same as the example figures)
     panel.background = element_rect(fill = "white", color = NA),
     panel.border     = element_rect(color = "black", fill = NA, linewidth = 0.8),
     panel.grid.major = element_line(color = "grey90", linewidth = 0.35),
     panel.grid.minor = element_line(color = "grey95", linewidth = 0.2),
     
-    # Strip (facet header) styling matching Figures 3, 5, 7
+    # Strip (facet header) styling
     strip.background = element_rect(fill = "grey85", color = "black", linewidth = 0.8),
     strip.text       = element_text(face = "bold", size = 11, color = "black"),
     
