@@ -120,7 +120,7 @@ init_fun <- function(init_pse = 90, init_sigma = 15) {
 }
 
 fit_bhglm <- stan(
-  file   = "Stan/simul_bhglm_lognormal.stan",
+  file   = "Stan/example1_BHGLM.stan",
   data   = datistan,
   chains = 3,
   warmup = 3000,

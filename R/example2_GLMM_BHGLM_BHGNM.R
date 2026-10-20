@@ -9,7 +9,8 @@
 #   4. Validate each model with DHARMa diagnostics.
 #
 # Required packages: tidyverse, MixedPsy, lme4, lmerTest, DHARMa, rstan, shinystan
-# Stan models:       Stan/vibro_bhglm.stan, Stan/vibro_bhgnm.stan
+# Stan models:       Stan/example2_BHGLM.stan, Stan/example2_BHGNM.stan
+#                    (alternative: Stan/example2_BHGLM_lognormal.stan)
 # Dataset:           vibro_exp3 (from MixedPsy)
 
 library(tidyverse)
@@ -124,7 +125,7 @@ detach(vibro_exp3)
 # ---------------------------------------------------------------------------
 # BH-GLM: Bayesian Hierarchical GLM (two-condition version)
 #
-# The Stan model (vibro_bhglm.stan) uses a matrix parameterisation:
+# The Stan model (example2_BHGLM.stan) uses a matrix parameterisation:
 #   b0[s, v] and b1[s, v] are per-subject intercepts and slopes for
 #   condition v (1 = 0 Hz, 2 = 32 Hz).
 # Initialisation near zero / small positive values for the linear predictor
@@ -140,8 +141,8 @@ init_fun <- function(init_b0 = -2, init_b1 = 0.1) {
 }
 
 fit_bhglm_vibro <- stan(
-  file   = "Stan/vibro_bhglm.stan",
-  #file   = "Stan/vibro_bhglm_lognormal.stan",
+  file   = "Stan/example2_BHGLM.stan",
+  # alternative prior (lognormal slopes): file = "Stan/example2_BHGLM_lognormal.stan"
   data   = datistan,
   chains = 3,
   warmup = 3000,
@@ -208,7 +209,7 @@ init_fun <- function(init_b0 = -2, init_b1 = 0.1,
 }
 
 fit_bhgnm_vibro <- stan(
-  file   = "Stan/vibro_bhgnm.stan",
+  file   = "Stan/example2_BHGNM.stan",
   data   = datistan,
   chains = 3,
   warmup = 3000,

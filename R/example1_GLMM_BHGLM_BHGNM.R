@@ -12,7 +12,8 @@
 #      predictive simulations.
 #
 # Required packages: tidyverse, MixedPsy, lme4, lmerTest, DHARMa, rstan, shinystan
-# Stan models:       Stan/simul_bhglm.stan, Stan/simul_bhgnm.stan
+# Stan models:       Stan/example1_BHGLM.stan, Stan/example1_BHGNM.stan
+#                    (alternative: Stan/example1_BHGNM_halfnormal.stan)
 
 library(tidyverse)
 library(MixedPsy)
@@ -115,7 +116,7 @@ datistan$ncond  <- length(unique(datistan$condition))
 # ---------------------------------------------------------------------------
 # BH-GLM: Bayesian Hierarchical GLM
 #
-# The Stan model (simul_bhglm.stan) places hierarchical priors on per-subject
+# The Stan model (example1_BHGLM.stan) places hierarchical priors on per-subject
 # PSE and sigma (slope), with Cauchy(0, 2.5) hyperpriors on the population
 # standard deviations.
 #
@@ -133,7 +134,7 @@ init_fun <- function(init_pse = 90, init_sigma = 15) {
 }
 
 fit_bhglm <- stan(
-  file   = "Stan/simul_bhglm_lognormal.stan",
+  file   = "Stan/example1_BHGLM.stan",
   data   = datistan,
   chains = 3,
   warmup = 3000,
@@ -194,17 +195,7 @@ testQuantiles(sim_bhglm)
 # ---------------------------------------------------------------------------
 
 # BH-GNM ----
-# init_fun <- function(init_pse = 90, init_sigma = 15,
-#                      init_gamma = 0.01, init_lambda = 0.01) {
-#   list(
-#     pse    = rep(init_pse,    datistan$nsubj),
-#     sigma  = rep(init_sigma,  datistan$nsubj),
-#     gamma  = rep(init_gamma,  datistan$nsubj),
-#     lambda = rep(init_lambda, datistan$nsubj)
-#   )
-# }
-
-# this is for simul_bhgnm_GL.stan
+# init_fun for the alternative model Stan/example1_BHGNM_halfnormal.stan
 # init_fun <- function(init_mu = 90, init_sigma = 15,
 #                      init_gamma = 0.01, init_lambda_raw = 0.01) {
 #   list(
@@ -238,9 +229,9 @@ init_fun <- function(init_mu = 90, init_sigma = 15,
 }
 
 fit_bhgnm <- stan(
-  #file   = "Stan/simul_bhgnm_halfnormal.stan",
-  #file   = "Stan/simul_bhgnm.stan",
-  file   = "Stan/simul_bhgnm_lognormal.stan",
+  file   = "Stan/example1_BHGNM.stan",
+  # alternative prior (half-normal sigma, hierarchical gamma/lambda): use the
+  # init_fun above and file = "Stan/example1_BHGNM_halfnormal.stan"
   data   = datistan,
   chains = 3,
   warmup = 3000,

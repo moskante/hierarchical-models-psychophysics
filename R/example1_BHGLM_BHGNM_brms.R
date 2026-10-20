@@ -126,7 +126,7 @@ print(params$Population)
 print(params$Subjects)
 
 # 5. Model 2: BH-GNM (with guess/lapse rates) ----
-# Nonlinear model including the lower and upper asymptotes (approximates Stan/simul_bhgnm.stan).
+# Nonlinear model including the lower and upper asymptotes (approximates Stan/example1_BHGNM.stan).
 
 # Psychometric function: gamma + (1 - gamma - lambda) * Phi((X - mu) / sigma)
 
