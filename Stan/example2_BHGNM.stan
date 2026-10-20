@@ -37,7 +37,7 @@ transformed parameters {
   }
   
   for (h in 1:2) {
-    PSE[h] = beta0[h]/beta1[h]; 
+    PSE[h] = -beta0[h]/beta1[h];
     JND[h]  = 0.6745/beta1[h];        
   }
   

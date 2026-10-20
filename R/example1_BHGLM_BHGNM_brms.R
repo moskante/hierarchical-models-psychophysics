@@ -155,9 +155,9 @@ formula_bhgnm <- brms::bf(
 # Priors
 # lb/ub bounds keep sigma positive and gamma, lambda in [0, 1]
 priors_bhgnm <- c(
-  # Intercepts
-  prior(normal(0, 10), class = "b", nlpar = "muPar"), 
-  prior(normal(0, 10), class = "b", nlpar = "sigmaPar", lb = 0),
+  # population-level location and scale, on the stimulus scale (X from 40 to 120)
+  prior(normal(75, 50), class = "b", nlpar = "muPar"),
+  prior(normal(0, 50), class = "b", nlpar = "sigmaPar", lb = 0),
   
   # group-level SDs (equivalent to tau_pse and tau_sigma)
   prior(cauchy(0, 2.5), class = "sd", nlpar = "muPar"),
