@@ -1,8 +1,8 @@
 // changed to compute the adjusted values of pse and jnd
 
 data {
-  int<lower=0> nobs;     //number of observation
-  int<lower=0> nsubj;    //number of sujects
+  int<lower=0> nobs;     //number of observations
+  int<lower=0> nsubj;    //number of subjects
   int<lower=0> n[nobs];  //number of trials for each condition (x) and subject
   int<lower=1, upper=nsubj> subject[nobs];  //subject id 
   int<lower=0> y[nobs];  // number of successes for each condition (x) and subject

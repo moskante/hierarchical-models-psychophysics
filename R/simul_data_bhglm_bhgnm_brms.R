@@ -1,5 +1,5 @@
 # ==============================================================================
-# utilizzo di brms (Sostituisce Stan puro)
+# Bayesian hierarchical models with brms (alternative to native Stan)
 # ==============================================================================
 
 library(tidyverse)
@@ -7,34 +7,34 @@ library(MixedPsy)
 library(brms)
 library(DHARMa)
 
-# 1. Preparazione Dati ----
+# 1. Data preparation ----
 set.seed(123)
 simul_data <- PsySimulate(ntrials = 160, nsubjects = 10, guess = TRUE, lapse = TRUE)
 simul_data$Subject <- factor(simul_data$Subject)
 
-# 2. Modello 1: Bayes Hierarchical GLM (Senza Lapses) ----
-# # Usiamo la sintassi brms che è identica a lme4
+# 2. Model 1: BH-GLM (no guess/lapse rates) ----
+# brms formula syntax is the same as lme4
 
-# 2. Esegui il modello con prior e init ottimizzati
+# 3. Fit the model with tuned priors and initial values
 fit_bhglm <- brm(
   formula = Longer | trials(Total) ~ X + (1 + X | Subject),
   data = simul_data,
   family = binomial(link = "probit"), 
   prior = c(
-    prior(normal(0, 3), class = "Intercept"), # Prior più ragionevoli per probit
+    prior(normal(0, 3), class = "Intercept"), # weakly informative priors on the probit scale
     prior(normal(0, 3), class = "b"),
     prior(cauchy(0, 2.5), class = "sd"),
-    prior(lkj(2), class = "cor")              # Prior per la correlazione random effects
+    prior(lkj(2), class = "cor")              # prior on the random-effects correlation
   ),
   chains = 3, 
   iter = 5000, 
   warmup = 3000,
   refresh = 10, 
-  init = 0,               # Fondamentale: forza l'inizio da zero per evitare log(0)
-  backend = "rstan"       # O "cmdstanr" se lo hai configurato
+  init = 0,               # start from zero to avoid log(0)
+  backend = "rstan"       # or "cmdstanr" if installed
 )
 
-# 3. Verifica l'oggetto prima di usarlo
+# 4. Check the fitted object
 if (is(fit_bhglm, "brmsfit")) {
   summary(fit_bhglm)
 } else {
@@ -43,29 +43,29 @@ if (is(fit_bhglm, "brmsfit")) {
 
 
 ## ---  Predictive Distributions with brms ---
-# Ottieni i conteggi attesi (n * pi)
+# expected counts (n * pi)
 pred_counts <- posterior_epred(fit_bhglm) 
 
-# Dividi per il vettore dei trials per ottenere le probabilità (pi)
+# divide by number of trials to get probabilities (pi)
 trials_vec <- simul_data$Total
 posteriorPredDistr_brms <- sweep(pred_counts, 2, trials_vec, "/")
 
 posteriorPredSim_brms <- posterior_predict(fit_bhglm)
 
-# calcolo di fitted_probs e il SSE
+# fitted probabilities and SSE
 fitted_probs <- apply(posteriorPredDistr_brms, 2, median)
 
-# Estrai i dati osservati direttamente dal dataframe
+# observed proportions from the data frame
 y_obs <- simul_data$Longer
 trials <- simul_data$Total
 
-# Calcola il SSE (Sum of Squared Errors)
+# Sum of Squared Errors (SSE)
 SSE_bhglm <- sum( (y_obs/trials - fitted_probs)^2 )
 
 print(paste("SSE bhglm:", SSE_bhglm))
 
 
-# Crea l'oggetto residui di DHARMa
+# create DHARMa residuals object
 sim_bhglm <- createDHARMa(
   simulatedResponse = t(posteriorPredSim_brms), 
   observedResponse = y_obs,
@@ -79,23 +79,23 @@ testDispersion(sim_bhglm)
 testOutliers(sim_bhglm)
 
 extract_psychophysic_params <- function(model) {
-  # 1. Estraiamo i coefficienti fissi (Fixed Effects)
+  # 1. Extract fixed effects
   fe <- fixef(model)
   b0 <- fe["Intercept", "Estimate"]
   b1 <- fe["X", "Estimate"]
   
-  # 2. Estraiamo gli effetti casuali (Random Effects per soggetto)
+  # 2. Extract subject-level random effects
   re <- ranef(model)$Subject
   
-  # 3. Calcolo dei parametri a livello di popolazione (Group Level)
+  # 3. Population-level parameters
   # PSE = -b0 / b1
   # Sigma = 1 / b1
   pse_group <- -b0 / b1
   sigma_group <- 1 / b1
   jnd_group <- 0.6745 * sigma_group
   
-  # 4. Calcolo dei parametri per ogni singolo soggetto
-  # Sommiamo l'effetto fisso all'effetto casuale specifico
+  # 4. Subject-level parameters
+  # fixed effect + subject-specific random effect
   subjects <- rownames(re)
   subj_results <- data.frame(
     Subject = subjects,
@@ -105,7 +105,7 @@ extract_psychophysic_params <- function(model) {
   )
   
   for (i in seq_along(subjects)) {
-    # Intercetta e pendenza specifica del soggetto
+    # subject-specific intercept and slope
     s_b0 <- b0 + re[i, "Estimate", "Intercept"]
     s_b1 <- b1 + re[i, "Estimate", "X"]
     
@@ -125,14 +125,10 @@ params <- extract_psychophysic_params(fit_bhglm)
 print(params$Population)
 print(params$Subjects)
 
-# AM e BL modificare da qui ----------------------------------------------------
-# AM modificato nome dei parametri
-#
-# 3. Modello 2: Bayes Hierarchical GNM (Con Lapses) ----
-# Dovrebbe parzialmente corrispondere al vecchio simul_bhgnm.stan.
-# Questo è il modello "Non-Lineare" che include gli asintoti.
+# 5. Model 2: BH-GNM (with guess/lapse rates) ----
+# Nonlinear model including the lower and upper asymptotes (approximates Stan/simul_bhgnm.stan).
 
-# Definiamo la formula psicometrica: gamma + (1 - gamma - lambda) * Phi(beta0 + beta1*x)
+# Psychometric function: gamma + (1 - gamma - lambda) * Phi((X - mu) / sigma)
 
 formula_bhgnm <- brms::bf(
   Longer | trials(Total) ~ gammaPar + (1 - gammaPar - lambdaPar) * Phi((X - muPar) / sigmaPar), # mu and sigma are Reserved Names in brms
@@ -145,7 +141,7 @@ formula_bhgnm <- brms::bf(
   nl = TRUE
 )
 
-# AM nota per essere più fedeli al modello stan dovremmo scrivere
+# Alternative closer to the Stan model (log-scale sigma):
 #
 # formula_bhgnm <- brms::bf(
 #   Longer | trials(Total) ~ gammaPar + (1 - gammaPar - lambdaPar) * Phi((X - muPar) / exp(logSigmaPar)),
@@ -156,24 +152,23 @@ formula_bhgnm <- brms::bf(
 #   nl = TRUE
 # )
 
-# 2. Definiamo le Priors
-# Nota: in brms dobbiamo specificare i limiti inferiori/superiori (lb/ub)
-# per garantire che sigma sia positivo e che i rate siano tra 0 e 1.
+# Priors
+# lb/ub bounds keep sigma positive and gamma, lambda in [0, 1]
 priors_bhgnm <- c(
-  # Intercette 
+  # Intercepts
   prior(normal(0, 10), class = "b", nlpar = "muPar"), 
   prior(normal(0, 10), class = "b", nlpar = "sigmaPar", lb = 0),
   
-  # Deviazioni standard di gruppo (equivalenti a tau_pse e tau_sigma)
+  # group-level SDs (equivalent to tau_pse and tau_sigma)
   prior(cauchy(0, 2.5), class = "sd", nlpar = "muPar"),
   prior(cauchy(0, 2.5), class = "sd", nlpar = "sigmaPar"),
   
-  # Priors per gamma e lambda (limitate tra 0 e 1)
+  # priors on gamma and lambda (bounded in [0, 1])
   prior(uniform(0, 1), class = "b", nlpar = "gammaPar", lb = 0, ub = 1),
   prior(uniform(0, 1), class = "b", nlpar = "lambdaPar", lb = 0, ub = 1)
 )
 
-# 3. Fit del Modello
+# Fit the model
 fit_bhgnm_brms <- brm(
   formula = formula_bhgnm,
   data = simul_data, 
@@ -189,30 +184,30 @@ fit_bhgnm_brms <- brm(
 
 
 ## ---  Predictive Distributions with brms ---
-# Ottieni i conteggi attesi (n * pi)
+# expected counts (n * pi)
 pred_counts <- posterior_epred(fit_bhgnm_brms) 
 
-# Dividi per il vettore dei trials per ottenere le probabilità (pi)
+# divide by number of trials to get probabilities (pi)
 trials_vec <- simul_data$Total
 posteriorPredDistr_brms_bhgnm <- sweep(pred_counts, 2, trials_vec, "/")
 
 posteriorPredSim_brms_bhgnm <- posterior_predict(fit_bhgnm_brms)
 
-# calcolo di fitted_probs e il SSE
+# fitted probabilities and SSE
 fitted_probs <- apply(posteriorPredDistr_brms_bhgnm, 2, median)
 
-# Estrai i dati osservati direttamente dal dataframe
+# observed proportions from the data frame
 y_obs <- simul_data$Longer
 trials <- simul_data$Total
 
-# Calcola il SSE (Sum of Squared Errors)
+# Sum of Squared Errors (SSE)
 SSE_bhgnm <- sum( (y_obs/trials - fitted_probs)^2 )
 
 print(paste("SSE bhgnm:", SSE_bhgnm))
 
 
 
-# Crea l'oggetto residui di DHARMa
+# create DHARMa residuals object
 sim_bhgnm <- createDHARMa(
   simulatedResponse = t(posteriorPredSim_brms_bhgnm), 
   observedResponse = y_obs,
@@ -224,55 +219,3 @@ plot(sim_bhgnm)
 testUniformity(sim_bhgnm)
 testDispersion(sim_bhgnm)
 testOutliers(sim_bhgnm)
-
-# AM and BL riparametrizzare da qui --------------------------------------------
-
-# extract_psychophysic_params_brms <- function(model) {
-#   # 1. Estraiamo gli effetti fissi (Population Level)
-#   fe <- fixef(model)
-#   
-#   mu_group   <- fe["mu_Intercept", "Estimate"]
-#   sigma_group <- fe["sigma_Intercept", "Estimate"]
-#   jnd_group   <- 0.6745 * sigma_group
-#   
-#   # 2. Estraiamo i coefficienti specifici per soggetto (Subject Level)
-#   subj_coefs <- coef(model)$Subject
-#   
-#   # 3. Creiamo il dataframe per i soggetti estraendo i valori
-#   subjects <- rownames(subj_coefs)
-#   
-#   subj_results <- data.frame(
-#     Subject = subjects,
-#     PSE     = subj_coefs[, "Estimate", "pse_Intercept"],
-#     Sigma   = subj_coefs[, "Estimate", "sigma_Intercept"]
-#   )
-#   
-#   # Calcoliamo la JND per i soggetti
-#   subj_results$JND <- 0.6745 * subj_results$Sigma
-#   
-#   # Pulizia degli indici di riga
-#   rownames(subj_results) <- NULL
-#   
-#   # 4. Restituiamo i risultati
-#   return(list(
-#     Population = data.frame(PSE = pse_group, Sigma = sigma_group, JND = jnd_group),
-#     Subjects   = subj_results
-#   ))
-# }
-# 
-# 
-# params <- extract_psychophysic_params_brms(fit_bhgnm_brms)
-# print(params$Population)
-# print(params$Subjects)
-# 
-# ### calcolo dei valori Veri per verifica
-# 
-# true_params <- unique(simul_data[, c("Subject", "Intercept", "Slope")])
-# true_params$True_PSE   <- -true_params$Intercept / true_params$Slope
-# true_params$True_Sigma <- 1 / true_params$Slope
-# true_params$True_JND   <- 0.6745 * true_params$True_Sigma
-# 
-# print(true_params)
-# 
-# 
-# 

@@ -10,7 +10,7 @@ data {
 
 parameters {
   matrix[nsubj, 2] b0;
-  matrix<lower=0>[nsubj, 2] b1;  // Corretto: b1 dichiarato al posto di log_b1
+  matrix<lower=0>[nsubj, 2] b1;
   
   vector[2] beta0;     
   vector[2] log_beta1;           // Population-level log(beta1)
@@ -29,7 +29,7 @@ transformed parameters {
   beta1 = exp(log_beta1 + 0.5 * square(tau_b1));//
   //beta1 = exp(log_beta1 );//Median
   
-  // Calcolo probabilità per la verosimiglianza
+  // response probabilities for the likelihood
   for (i in 1:nobs){
     int s = subject[i];
     int v = vibration[i] + 1;
@@ -48,9 +48,9 @@ model {
    // tau_beta0 ~ cauchy(0, 2.5);
    // tau_beta1 ~ cauchy(0, 2.5);
   tau_b0 ~ normal(0, 2.5);
-  tau_b1 ~ normal(0, 1);       // Ridotto a 1 perché è sulla scala logaritmica
+  tau_b1 ~ normal(0, 1);       // scale 1 because b1 is on the log scale
   tau_beta0 ~ normal(0, 2.5);
-  tau_beta1 ~ normal(0, 1);    // Ridotto a 1 per evitare esplosioni nell'esponenziale
+  tau_beta1 ~ normal(0, 1);    // scale 1 to keep exp(log_beta1) stable
   
   // Hierarchical structure
   for (i in 1:nsubj){
@@ -76,7 +76,7 @@ generated quantities {
   vector[nobs] predProb;  
   array[nobs] int y_sim;      
 
-  // Valori derivati calcolati a posteriori (spostati per efficienza)
+  // derived quantities (computed here for efficiency)
   for (i in 1:nsubj) {
     for (h in 1:2) {
       pse[i, h] = -b0[i, h] / b1[i, h]; 

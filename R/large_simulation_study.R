@@ -69,7 +69,7 @@ simulate_dataset <- function() {
                                     lapse     = TRUE)
   simul_data$Subject <- factor(simul_data$Subject)
   
-  # Estraiamo la stima campionaria reale dei soggetti generati in questa iterazione[cite: 5]
+  # sample-level true PSE of the subjects simulated in this iteration
   params_true <- simul_data %>%
     group_by(Subject) %>%
     summarise(
@@ -81,7 +81,7 @@ simulate_dataset <- function() {
       pse_sim = -Intercept_i / Slope_i
     )
   
-  # Ritorniamo sia il dataset che la stima campionaria per l'inizializzazione
+  # return the dataset and the sample-level PSE (used for initialization)
   list(
     data            = simul_data,
     true_sample_pse = mean(params_true$pse_sim, na.rm = TRUE)
@@ -187,7 +187,7 @@ fit_BHGLM <- function(iter, sim) {
                      nobs = nrow(simul_data), x = simul_data$X, 
                      subject = as.integer(simul_data$Subject), nsubj = nlevels(simul_data$Subject))
     
-    # UNIFIED MINIMAL INITIALIZATION: dynamically seeded by sample-level PSE[cite: 5]
+    # UNIFIED MINIMAL INITIALIZATION: dynamically seeded by sample-level PSE
     init_fn  <- function() list(
       pse   = rep(true_sample_pse, datistan$nsubj),
       sigma = rep(15,              datistan$nsubj)
@@ -216,7 +216,7 @@ fit_BHGNM <- function(iter, sim) {
     datistan <- list(y = simul_data$Longer, n = simul_data$Total, nobs = nrow(simul_data),
                      x = simul_data$X, subject = as.integer(simul_data$Subject), nsubj = nlevels(simul_data$Subject))
     
-    # INIZIALIZZAZIONE ALLINEATA AL BLOCCO 'parameters' STAN
+    # initial values matching the Stan 'parameters' block
     init_fn <- function() list(
       mu        = rep(true_sample_pse, datistan$nsubj),
       sigma     = rep(15,              datistan$nsubj),
@@ -226,8 +226,8 @@ fit_BHGNM <- function(iter, sim) {
       tau_sigma = 0.2,
       tau_MU    = 1.0,
       tau_SIGMA = 1.0,
-      gamma     = rep(0.01,            datistan$nsubj), # Inizializzazione sicura (> 0)
-      lambda    = rep(0.01,            datistan$nsubj)  # Inizializzazione sicura (1 - gamma - lambda > 0)
+      gamma     = rep(0.01,            datistan$nsubj), # safe initial value (> 0)
+      lambda    = rep(0.01,            datistan$nsubj)  # safe initial value (1 - gamma - lambda > 0)
     )
     
     fit <- sampling(stan_bhgnm, data = datistan, chains = 3, 
@@ -257,7 +257,7 @@ while (n_done < n_target) {
   sim          <- simulate_dataset()
   iter_counter <- iter_counter + 1L
   
-  # 1. Prova il fit di tutti i 5 modelli sullo stesso dataset
+  # 1. Fit all 5 models on the same dataset
   temp_results <- list(
     "GLM"    = fit_GLM(iter_counter, sim),
     "GNM"    = fit_GNM(iter_counter, sim),
@@ -266,7 +266,7 @@ while (n_done < n_target) {
     "BH-GNM" = fit_BHGNM(iter_counter, sim)
   )
   
-  # 2. Salva solo se TUTTI e 5 convergono (!is.null)
+  # 2. Keep the iteration only if all 5 models converge
   if (all(!vapply(temp_results, is.null, logical(1)))) {
     n_done <- n_done + 1L
     for (m in all_methods) {

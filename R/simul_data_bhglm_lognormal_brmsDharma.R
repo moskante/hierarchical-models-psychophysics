@@ -40,14 +40,14 @@ formula <- bf(
   nl = TRUE
 )
 
-# Famiglia binomiale con link identity (la probit è già dentro Phi)
+# binomial family with identity link (probit is already in Phi)
 fam <- binomial(link = "identity")
 
 init_fun_brms <- function() {
   list(
     b_pse     = as.array(90),               # PSE 
-    b_lsd     = as.array(log(15))     # sigma iniziale 
-   # sd_1      = as.array(c(15 / 10)),      # sd random effect pse (piccola ma non zero)
+    b_lsd     = as.array(log(15))     # initial sigma 
+   # sd_1      = as.array(c(15 / 10)),      # random-effect SD for pse (small but non-zero)
   #  sd_2      = as.array(0.1),              # sd random effect lsd
   #  tauPSE   = 15,
   #  tauSIGMA = 1
@@ -142,22 +142,22 @@ hyperparameters_bhglm%>% filter(params %in% c("PSE", "JND")) %>% select(params, 
 
 
 draws <- as_draws_matrix(fit2)
-variables(draws)   # controllo
+variables(draws)
 
-# Iperparametri (equivalente a hyperparameters_bhglm)
+# Hyperparameters (equivalent to hyperparameters_bhglm)
 hyper_brms <- summarise_draws(
   subset_draws(draws, variable = c("PSE", "SIGMA", "JND")),
   mean, sd, ~quantile2(.x, probs = c(0.025, 0.975)), rhat, ess_bulk
 )
 
-# Parametri per soggetto (equivalente a parameters_bhglm)
+# Subject-level parameters (equivalent to parameters_bhglm)
 parameters_brms <- summarise_draws(
   subset_draws(draws, variable = c("pse", "jnd")),
   mean, ~quantile2(.x, probs = c(0.025, 0.975)), rhat, ess_bulk
 ) %>%
   separate(variable, into = c("params", "Subject"), sep = "\\[|\\]", extra = "drop")
 
-# SSE e DHARMa
+# SSE and DHARMa
 y_sim    <- as.matrix(subset_draws(draws, variable = "y_sim"))
 predProb <- as.matrix(subset_draws(draws, variable = "predProb"))
 fitted_probs   <- apply(predProb, 2, median)
@@ -176,7 +176,7 @@ sim_bhglm_brms <- createDHARMa(
 
 plot(sim_bhglm_brms); testUniformity(sim_bhglm_brms); testDispersion(sim_bhglm_brms)
 testOutliers(sim_bhglm_brms); testQuantiles(sim_bhglm_brms)
-# Per il grafico di confronto
+# Data for comparison plot
 df_bhglm <- hyperparameters_bhglm %>%
   rename(Parameter = params, Estimate = mean,
          Lower = `2.5%`, Upper = `97.5%`) %>%
@@ -189,7 +189,7 @@ df_bhglm_brms <- hyper_brms %>%
   transmute(Parameter = variable, Estimate = mean,
             Lower = q2.5, Upper = q97.5, Model = "BH-GLM (brms)")
 
-# Combinazione
+# Combine
 df_combined <- bind_rows(df_bhglm, df_bhglm_brms) %>%
   mutate(Model = factor(Model,
                         levels = c("BH-GLM (Stan)", "BH-GLM (brms)")))

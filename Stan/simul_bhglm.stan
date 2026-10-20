@@ -1,6 +1,6 @@
 data {
-  int<lower=0> nobs;          //number of observation
-  int<lower=0> nsubj;         //number of sujects
+  int<lower=0> nobs;          //number of observations
+  int<lower=0> nsubj;         //number of subjects
   int<lower=0> n[nobs];       //number of trials for each condition (x) and subject
   int subject[nobs];          //subject id          
   array[nobs] int<lower=0> y; // number of successes for each condition (x) and subject
@@ -44,7 +44,7 @@ model {
   tau_PSE ~ cauchy(0,2.5);
   tau_SIGMA ~ cauchy(0,2.5);
   
-  // Hyerarchical structure  
+  // Hierarchical structure  
   for (i in 1:nsubj){
     pse[i] ~ normal(PSE, tau_pse);
     sigma[i] ~ normal(SIGMA, tau_sigma);
