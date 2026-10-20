@@ -1,16 +1,16 @@
 data {
   int<lower=0> nobs;     // number of observations
   int<lower=0> nsubj;    // number of subjects
-  int<lower=0> n[nobs];  // number of trials for each condition (x) and subject
-  int<lower=1, upper=nsubj> subject[nobs];  // subject id 
-  int<lower=0> y[nobs];  // number of successes for each condition (x) and subject
-  real<lower=0> x[nobs]; // condition (x)
+  array[nobs] int<lower=0> n;  // number of trials for each condition (x) and subject
+  array[nobs] int<lower=1, upper=nsubj> subject;  // subject id 
+  array[nobs] int<lower=0> y;  // number of successes for each condition (x) and subject
+  array[nobs] real<lower=0> x; // condition (x)
 }
 
 parameters {
   // 1. Latent Sensory Parameters (Sensory space)
-  real mu[nsubj];       // Individual latent sensory mean (unadjusted location)
-  real <lower=0> sigma[nsubj];    // Individual sensory scale (standard deviation)
+  array[nsubj] real mu;       // Individual latent sensory mean (unadjusted location)
+  array[nsubj] real<lower=0> sigma;    // Individual sensory scale (standard deviation)
   real MU;              // Population latent sensory mean
   real <lower=0> SIGMA;           // Population sensory scale
   real<lower=0> tau_mu;
@@ -19,8 +19,8 @@ parameters {
   real<lower=0> tau_SIGMA;  
 
   // 2. Asymptotic Parameters (Probability space [0, 1])
-  real<lower=0, upper=1> gamma[nsubj];       // Individual guess rate
-  real<lower=0, upper=1> lambda_raw[nsubj];  // Individual remaining lapse fraction
+  array[nsubj] real<lower=0, upper=1> gamma;       // Individual guess rate
+  array[nsubj] real<lower=0, upper=1> lambda_raw;  // Individual remaining lapse fraction
   
   real<lower=0, upper=1> GAMMA;              // Population mean guess rate
   real<lower=0, upper=1> LAMBDA_tilde;       // Population mean lapse fraction
@@ -30,16 +30,16 @@ parameters {
 }
 
 transformed parameters {
-  real<lower=0, upper=1> PI[nobs];  
+  array[nobs] real<lower=0, upper=1> PI;  
   
   // Realized behavioral lapse rates matching the geometric bounds
-  real<lower=0, upper=1> lambda[nsubj];
+  array[nsubj] real<lower=0, upper=1> lambda;
   real<lower=0, upper=1> LAMBDA;
 
   // Final corrected psychophysical metrics (directly exported to R)
-  real jnd[nsubj];      // Subject-level adjusted JND
+  array[nsubj] real jnd;      // Subject-level adjusted JND
   real JND;             // Population-level adjusted JND
-  real pse[nsubj];      // Subject-level adjusted PSE
+  array[nsubj] real pse;      // Subject-level adjusted PSE
   real PSE;             // Population-level adjusted PSE
 
   // Algebraic coupling: mathematically ensures gamma + lambda < 1
@@ -119,7 +119,7 @@ model {
 
 generated quantities {
   vector[nobs] predProb;  // store predicted probability (mean)
-  int y_sim[nobs];        // posterior predictive simulations
+  array[nobs] int y_sim;        // posterior predictive simulations
 
   for (i in 1:nobs) {
     predProb[i] = PI[i]; 

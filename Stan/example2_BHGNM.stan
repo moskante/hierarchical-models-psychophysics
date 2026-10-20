@@ -1,11 +1,11 @@
 data {
   int<lower=0> nobs;                    // number of observations
   int<lower=0> nsubj;                   // number of subjects
-  int<lower=0> n[nobs];                 // number of trials
-  int subject[nobs];                    // subject id
+  array[nobs] int<lower=0> n;                 // number of trials
+  array[nobs] int subject;                    // subject id
   array[nobs] int<lower=0> y;           // observed counts (successes)
-  real x[nobs];                         // stimulus intensity
-  int<lower=0,upper=1> vibration[nobs]; // vibration condition (0 or 1)
+  array[nobs] real x;                         // stimulus intensity
+  array[nobs] int<lower=0,upper=1> vibration; // vibration condition (0 or 1)
   
 }
 
@@ -23,7 +23,7 @@ parameters {
 }
 
 transformed parameters {
-  real<lower=0, upper=1> PI[nobs];
+  array[nobs] real<lower=0, upper=1> PI;
   matrix[nsubj, 2] pse;
   matrix[nsubj, 2] jnd;
   vector[2] PSE;
@@ -79,7 +79,7 @@ model {
 
 generated quantities {
   vector[nobs] predProb;  // store predicted probability (mean)
-  int y_sim[nobs];      // posterior predictive simulations
+  array[nobs] int y_sim;      // posterior predictive simulations
 
   for (i in 1:nobs) {
     predProb[i] = PI[i]; // mean prediction for DHARMa

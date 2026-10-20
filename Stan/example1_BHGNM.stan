@@ -1,34 +1,32 @@
-// changed to compute the adjusted values of pse and jnd
-
 data {
   int<lower=0> nobs;     //number of observations
   int<lower=0> nsubj;    //number of subjects
-  int<lower=0> n[nobs];  //number of trials for each condition (x) and subject
-  int<lower=1, upper=nsubj> subject[nobs];  //subject id 
-  int<lower=0> y[nobs];  // number of successes for each condition (x) and subject
-  real<lower=0> x[nobs]; // condition (x)
+  array[nobs] int<lower=0> n;  //number of trials for each condition (x) and subject
+  array[nobs] int<lower=1, upper=nsubj> subject;  //subject id 
+  array[nobs] int<lower=0> y;  // number of successes for each condition (x) and subject
+  array[nobs] real<lower=0> x; // condition (x)
 }
 
 parameters {
-  real mu[nsubj];       // Latent sensory mean (unadjusted location)
-  real<lower=0> sigma[nsubj];    // Sensory scale (standard deviation)
+  array[nsubj] real mu;       // Latent sensory mean (unadjusted location)
+  array[nsubj] real<lower=0> sigma;    // Sensory scale (standard deviation)
   real MU;              // Latent population sensory mean
   real log_SIGMA;             // Latent population scale on log scale
   real<lower=0> tau_mu;
   real<lower=0> tau_sigma;
   real<lower=0> tau_MU;
   real<lower=0> tau_SIGMA;  
-  real<lower=0, upper=1> gamma[nsubj];
-  real<lower=0, upper=1> lambda[nsubj];
+  array[nsubj] real<lower=0, upper=1> gamma;
+  array[nsubj] real<lower=0, upper=1> lambda;
 }
 
 transformed parameters{
-  real<lower=0, upper=1> PI[nobs];  
+  array[nobs] real<lower=0, upper=1> PI;  
   
-  // Adjusted behavioral parameters (the ones we actually care about)
-  real jnd[nsubj];      // Subject-level adjusted JND
+  // Adjusted behavioral parameters
+  array[nsubj] real jnd;      // Subject-level adjusted JND
   real JND;             // Population-level adjusted JND
-  real pse[nsubj];      // Subject-level adjusted PSE
+  array[nsubj] real pse;      // Subject-level adjusted PSE
   real PSE;             // Population-level adjusted PSE
   
   // True population arithmetic mean scale E[sigma_i]
@@ -81,8 +79,6 @@ transformed parameters{
 model {
   // Priors
   MU ~ normal(0, tau_MU);
-  // Prior centered around log(15) = 2.7
-  // log_SIGMA ~ normal(2.7, tau_SIGMA); 
   log_SIGMA ~ normal(0, tau_SIGMA);
   
   // Hyperpriors
@@ -107,7 +103,7 @@ model {
 
 generated quantities {
   vector[nobs] predProb;  // store predicted probability (mean)
-  int y_sim[nobs];      // posterior predictive simulations
+  array[nobs] int y_sim;      // posterior predictive simulations
 
   for (i in 1:nobs) {
     predProb[i] = PI[i]; // mean prediction for DHARMa

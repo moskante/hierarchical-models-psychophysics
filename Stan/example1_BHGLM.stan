@@ -1,15 +1,15 @@
 data {
   int<lower=0> nobs;          
   int<lower=0> nsubj;         
-  int<lower=0> n[nobs];       
-  int subject[nobs];          
+  array[nobs] int<lower=0> n;       
+  array[nobs] int subject;          
   array[nobs] int<lower=0> y; 
-  real x[nobs];               
+  array[nobs] real x;               
 }
 
 parameters {
-  real pse[nsubj];
-  real<lower=0> sigma[nsubj];
+  array[nsubj] real pse;
+  array[nsubj] real<lower=0> sigma;
   real PSE;
   real log_SIGMA; // Latent parameter on log scale             
   real<lower=0> tau_pse;
@@ -19,10 +19,10 @@ parameters {
 }
 
 transformed parameters {
-  real<lower=0, upper=1> PI[nobs];
-  real jnd[nsubj];
-  real<lower=0> SIGMA = exp(log_SIGMA + 0.5 * square(tau_sigma));  // 1. Calculate true population mean on original scale (E[sigma_i])
-  real JND = 0.6745 * SIGMA;  // 2. Derive JND using corrected SIGMA
+  array[nobs] real<lower=0, upper=1> PI;
+  array[nsubj] real jnd;
+  real<lower=0> SIGMA = exp(log_SIGMA + 0.5 * square(tau_sigma));  // population mean of sigma_i on the original scale (E[sigma_i])
+  real JND = 0.6745 * SIGMA;  // population JND from the mean SIGMA
   for (i in 1:nsubj) {
     jnd[i] = 0.6745 * sigma[i];
   }
@@ -46,7 +46,7 @@ model {
   // Hierarchical structure  
   for (i in 1:nsubj) {
     pse[i] ~ normal(PSE, tau_pse);
-    sigma[i] ~ lognormal(log_SIGMA, tau_sigma); // Smooth sampling
+    sigma[i] ~ lognormal(log_SIGMA, tau_sigma); // lognormal prior keeps sigma positive
   }
   
   // Likelihood
@@ -57,7 +57,7 @@ model {
 
 generated quantities {
   vector[nobs] predProb;  
-  int y_sim[nobs];        
+  array[nobs] int y_sim;        
   
   for (i in 1:nobs) {
     predProb[i] = PI[i]; 
