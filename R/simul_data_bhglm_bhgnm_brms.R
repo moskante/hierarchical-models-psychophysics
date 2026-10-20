@@ -14,8 +14,6 @@ simul_data$Subject <- factor(simul_data$Subject)
 
 # 2. Modello 1: Bayes Hierarchical GLM (Senza Lapses) ----
 # # Usiamo la sintassi brms che è identica a lme4
-# 1. Elimina il file precedente se corrotto
-if (file.exists("fits/bhglm_fit.rds")) file.remove("fits/bhglm_fit.rds")
 
 # 2. Esegui il modello con prior e init ottimizzati
 fit_bhglm <- brm(
@@ -33,8 +31,7 @@ fit_bhglm <- brm(
   warmup = 3000,
   refresh = 10, 
   init = 0,               # Fondamentale: forza l'inizio da zero per evitare log(0)
-  backend = "rstan",      # O "cmdstanr" se lo hai configurato
-  file = "fits/bhglm_fit"
+  backend = "rstan"       # O "cmdstanr" se lo hai configurato
 )
 
 # 3. Verifica l'oggetto prima di usarlo
