@@ -438,5 +438,5 @@ p_violin <- ggplot(df_long, aes(x = method, y = estimate)) +
 
 # Display or save
 print(p_violin)
-ggsave("large_simulation_violins_v2.pdf", path = "./Figs",
-       plot = p_violin, width = 8.5, height = 4.5, units = "in")
+ggsave("large_simulation_violins_v2.pdf", path = "Figs",
+       plot = p_violin, width = 8.5, height = 4.5, units = "in", create.dir = TRUE)

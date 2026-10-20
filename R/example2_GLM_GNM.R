@@ -145,4 +145,4 @@ ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
     axis.text.x = element_text(face = "bold")
   )
 
-ggsave("example_2__twolevels_estimates_diffs.pdf", path = "Figs",width = 6, height = 4)
+ggsave("example_2__twolevels_estimates_diffs.pdf", path = "Figs", width = 6, height = 4, create.dir = TRUE)

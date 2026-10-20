@@ -349,4 +349,4 @@ ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
     strip.text = element_text(face = "bold", size = 12),
     axis.text.x = element_text(face = "bold")
   )
-ggsave("example_1_hierarchic_estimates_jnd_pse.pdf", path = "Figs")
+ggsave("example_1_hierarchic_estimates_jnd_pse.pdf", path = "Figs", create.dir = TRUE)

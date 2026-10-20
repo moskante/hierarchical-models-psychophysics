@@ -355,4 +355,4 @@ ggplot(df_combined, aes(x = Model, y = Estimate, color = Model)) +
     axis.text.x = element_text(face = "bold")
   )
 
-ggsave("example_2_hierarchic_estimates_diffs.pdf", path = "Figs", width = 9, height = 4)
+ggsave("example_2_hierarchic_estimates_diffs.pdf", path = "Figs", width = 9, height = 4, create.dir = TRUE)
