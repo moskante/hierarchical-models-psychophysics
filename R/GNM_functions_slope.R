@@ -1,8 +1,8 @@
-# gnlm_functions_slope.R
+# GNM_functions_slope.R
 #
 # GNM helper functions for the vibrotactile analysis (Example 2).
 #
-# This file is the slope-parameterised counterpart of gnlm_functions_psejnd.R.
+# This file is the slope-parameterised counterpart of GNM_functions_psejnd.R.
 # The key difference is that here the psychometric function is written in the
 # linear predictor form (beta_0 + beta_1 * speed) rather than the location-scale
 # form (mu, sigma), because the primary outcome of interest is the *slope*
@@ -13,7 +13,7 @@
 #   sigma         = 1 / beta_1
 #   JND           = qnorm(0.75) / beta_1
 #
-# As in gnlm_functions_psejnd.R, gamma (guessing) and lambda (lapsing) are
+# As in GNM_functions_psejnd.R, gamma (guessing) and lambda (lapsing) are
 # estimated as free parameters on an unconstrained scale and back-transformed
 # via atan2.
 
@@ -66,7 +66,7 @@ PsychParametersGNM <- function(gnm, p = 0.75){
 # ---------------------------------------------------------------------------
 # PsychBootGNM_vibro() -- bootstrap statistic for the vibrotactile GNM
 #
-# Differs from PsychBootGNM in gnlm_functions_psejnd.R only in using the
+# Differs from PsychBootGNM in GNM_functions_psejnd.R only in using the
 # vibrotactile column names (faster, slower, speed).
 # ---------------------------------------------------------------------------
 PsychBootGNM_vibro <- function(data, indices, p = 0.75){

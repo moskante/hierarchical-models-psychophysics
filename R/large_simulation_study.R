@@ -15,7 +15,7 @@ library(lmerTest)
 library(rstan)
 library(gnlm)
 
-source("R/gnlm_functions_psejnd.R")   # contains PsychParametersGNM()
+source("R/GNM_functions_psejnd.R")   # contains PsychParametersGNM()
 
 # ============================================================
 # Monte Carlo loop configuration

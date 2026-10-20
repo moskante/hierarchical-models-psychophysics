@@ -1,4 +1,4 @@
-# vibro_hierarchic.R
+# example2_GLMM_BHGLM_BHGNM.R
 #
 # Example 2b: hierarchical model analysis on vibrotactile data.
 #

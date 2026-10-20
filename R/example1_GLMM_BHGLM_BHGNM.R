@@ -1,9 +1,9 @@
-# simul_data_hierarchic.R
+# example1_GLMM_BHGLM_BHGNM.R
 #
 # Example 1b: hierarchical model analysis on simulated psychophysical data.
 #
 # Workflow:
-#   1. Simulate 10 subjects (same setup as simul_data_single_sub.R).
+#   1. Simulate 10 subjects (same setup as example1_GLM_GNM.R).
 #   2. Fit a probit GLMM with random intercepts and slopes (frequentist).
 #   3. Validate the GLMM with DHARMa residual diagnostics.
 #   4. Fit a Bayesian Hierarchical GLM (BH-GLM) via Stan.

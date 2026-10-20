@@ -1,4 +1,4 @@
-# gnlm_functions_psejnd.R
+# GNM_functions_psejnd.R
 #
 # GNM (Generalised Nonlinear Model) helper functions for fitting psychometric
 # functions and extracting PSE and JND. Used in manuscript for simulated data (Example 1).

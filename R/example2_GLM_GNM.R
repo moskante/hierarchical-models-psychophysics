@@ -1,4 +1,4 @@
-# vibro_single_sub.R
+# example2_GLM_GNM.R
 #
 # Example 2a: single-subject GLM and GNM analysis on vibrotactile data.
 #
@@ -17,7 +17,7 @@
 #   4. Test the vibration effect on slope from the GNM.
 #
 # Required packages: tidyverse, MixedPsy, gnlm
-# Source file:       R/gnlm_functions_slope.R
+# Source file:       R/GNM_functions_slope.R
 # Dataset:           vibro_exp3 (loaded from MixedPsy)
 
 library(tidyverse)
@@ -65,14 +65,14 @@ t_glm_slope <- t.test(params_glm_wider$slope_32, params_glm_wider$slope_0, paire
 # ---------------------------------------------------------------------------
 # GNM: nonlinear model with guessing and lapsing (slope parameterisation)
 #
-# gnlm_functions_slope.R defines process_subject_vibro(), which fits a GNM
+# GNM_functions_slope.R defines process_subject_vibro(), which fits a GNM
 # to one subject x condition split. The output includes PSE, slope, gamma,
 # lambda, their bootstrap SEs, and 95% CIs.
 # JND is derived post-hoc from the slope as qnorm(0.75) / slope.
 # ---------------------------------------------------------------------------
 
 # GNM ----
-source("R/gnlm_functions_slope.R")
+source("R/GNM_functions_slope.R")
 parameters_gnm <- vibro_exp3 %>%
   group_split(subject, vibration) %>%
   map_dfr(process_subject_vibro)

@@ -1,4 +1,4 @@
-# simul_data_single_sub.R
+# example1_GLM_GNM.R
 #
 # Example 1a: single-subject GLM and GNM analysis on simulated psychophysical data.
 #
@@ -10,7 +10,7 @@
 #   5. Test whether estimated PSE and JND deviate from the true values.
 #
 # Required packages: tidyverse, MixedPsy, gnlm
-# Source file:       R/gnlm_functions_psejnd.R
+# Source file:       R/GNM_functions_psejnd.R
 
 library(tidyverse)
 library(MixedPsy)
@@ -81,14 +81,14 @@ t_glm_jnd <- t.test(parameters_glm$jnd, mu = sample_mean_jnd)
 # ---------------------------------------------------------------------------
 # 4. GNM: nonlinear model with guessing and lapsing
 #
-# gnlm_functions_psejnd.R defines process_subject(), which fits a GNM to one
+# GNM_functions_psejnd.R defines process_subject(), which fits a GNM to one
 # subject's data and returns PSE, JND, gamma, lambda, and their bootstrap SEs.
 # group_split() splits the data frame by Subject; map_dfr() applies
 # process_subject() to each split and stacks the results into one tibble.
 # ---------------------------------------------------------------------------
 
 # GNL ----
-source("R/gnlm_functions_psejnd.R")
+source("R/GNM_functions_psejnd.R")
 parameters_gnm <- simul_data %>%
   group_split(Subject) %>%
   map_dfr(process_subject)
