@@ -70,7 +70,25 @@ install.packages(c("tidyverse", "MixedPsy", "gnlm", "boot", "lme4", "lmerTest",
                    "DHARMa", "rstan", "shinystan", "brms", "posterior", "xtable"))
 ```
 
-The Bayesian models need a working C++ toolchain for Stan. See the [RStan Getting Started guide](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
+The Bayesian models need a working C++ toolchain for Stan (Rtools on Windows, Xcode command line tools on macOS, a C++ compiler on Linux). See the [RStan Getting Started guide](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
+
+**StanHeaders version.** rstan 2.32.7 must be used with StanHeaders 2.32.x. Installing rstan from CRAN can bring in a newer StanHeaders (e.g. 2.39), and then Stan models fail to compile, at least on Windows. After installing the packages above, install the matching StanHeaders (this works on all platforms):
+
+```r
+install.packages("https://cran.r-project.org/src/contrib/Archive/StanHeaders/StanHeaders_2.32.10.tar.gz",
+                 repos = NULL, type = "source")
+```
+
+The Stan programs use the current array syntax (`array[N] real x;`), so they also work with newer versions of Stan, CmdStan and cmdstanr.
+
+### Reproducible environment (optional)
+
+The file `renv.lock` records the exact versions of R packages used for testing. To install them in a project library with [renv](https://rstudio.github.io/renv/):
+
+```r
+install.packages("renv")
+renv::restore()
+```
 
 ### Tested versions
 
@@ -85,6 +103,7 @@ The code was tested with R 4.5.3 on Windows 11, and on macOS and Ubuntu, in RStu
 | lmerTest | 3.2.1 |
 | DHARMa | 0.5.0 |
 | rstan | 2.32.7 |
+| StanHeaders | 2.32.10 |
 | shinystan | 2.7.0 |
 | brms | 2.23.0 |
 | posterior | 1.7.0 |
