@@ -89,6 +89,7 @@ glmm_CI <- pseMer(glmm, B = 500)
 ## DHARMa diagnostic -----
 testDispersion(glmm)
 simulationOutput <- simulateResiduals(fittedModel = glmm)
+
 plot(simulationOutput)
 testUniformity(simulationOutput)
 testDispersion(simulationOutput)
@@ -206,7 +207,6 @@ testDispersion(sim_bhglm)
 testOutliers(sim_bhglm)
 testQuantiles(sim_bhglm)
 
-
 # ---------------------------------------------------------------------------
 # BH-GNM: Bayesian Hierarchical GNM
 #
@@ -291,11 +291,11 @@ sim_bhgnm <- createDHARMa(
   integerResponse          = TRUE
 )
 
+plot(sim_bhgnm)
 testUniformity(sim_bhgnm)
 testDispersion(sim_bhgnm)
 testOutliers(sim_bhgnm)
 testQuantiles(sim_bhgnm)
-
 
 # Model plot JND and PSE -------------------------------------------------------
 
