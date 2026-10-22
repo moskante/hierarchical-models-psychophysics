@@ -186,7 +186,7 @@ plot_vibro_curves <- function(pred, obs, colors, condition) {
     facet_wrap(~ subject, ncol = 3) +
     scale_color_manual(values = colors) +
     scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
-    labs(title = paste(condition, "Hz"), x = "speed", y = "Proportion judged faster") +
+    labs(title = paste(condition, "Hz"), x = "speed (cm/s)", y = "Proportion judged faster") +
     theme_bw(base_size = 13) +
     theme(legend.position = "none",
           plot.title = element_text(hjust = 0.5))
