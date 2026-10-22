@@ -50,6 +50,7 @@ R/
 Stan/
   example1_BHGLM.stan                # BH-GLM, Example 1 and large simulation study
   example1_BHGNM.stan                # BH-GNM, Example 1 and large simulation study
+  example1_BHGLM_noncentred.stan     # alternative BH-GLM: non-centred sigma (Example 1)
   example1_BHGNM_halfnormal.stan     # alternative BH-GNM: half-normal sigma, hierarchical gamma/lambda
   example2_BHGLM.stan                # BH-GLM, Example 2
   example2_BHGLM_lognormal.stan      # alternative BH-GLM: lognormal prior on the slopes
@@ -138,7 +139,9 @@ Figures are saved as PDF in a `Figs/` folder, which is created automatically. Fi
 3. Computes the Sum of Squared Errors (SSE) and runs DHARMa diagnostics for each model.
 4. Plots the population-level estimates of the three models.
 
-The script also explains, in comments, how to fit the alternative model `Stan/example1_BHGNM_halfnormal.stan`.
+The script also explains, in comments, how to fit the alternative models:
+- `Stan/example1_BHGLM_noncentred.stan`: the same BH-GLM with a non-centred parameterisation of the subject-level sigma (Eq. 28 in the paper). The priors and the posterior are the same, but sampling is usually more efficient, with fewer divergent transitions. The paper presents the centred model because it is easier to read.
+- `Stan/example1_BHGNM_halfnormal.stan`: half-normal prior on sigma and hierarchical guess and lapse rates.
 
 **Step 3. `R/example1_BHGLM_BHGNM_brms.R`: Bayesian hierarchical models with brms**
 Fits the BH-GLM and the BH-GNM with `brms`, the high-level alternative to native Stan code described in the paper, and computes the SSE and DHARMa diagnostics.
@@ -169,6 +172,32 @@ The script also explains, in comments, how to fit the alternative model `Stan/ex
 4. Prints the summary tables and saves the violin plots of the estimates.
 
 > This script fits 750 models and takes a long time to run.
+
+---
+
+## Priors of the Bayesian models
+
+Prior distributions of all Bayesian hierarchical models. **Paper** marks the models presented in the article; the others are alternatives available in this repository. The second argument of N, LogNormal and half-Cauchy is a standard deviation; *i* indexes participants and *h* the vibration conditions of Example 2.
+
+### Example 1: simulated data
+
+| Model | File | Paper | Subject location | Subject scale / slope | Population location | Population scale / slope | Standard deviations | Guess γ / lapse λ |
+|---|---|:---:|---|---|---|---|---|---|
+| BH-GLM | `Stan/example1_BHGLM.stan` | ✓ | pse<sub>i</sub> ~ N(PSE, τ<sub>pse</sub>) | σ<sub>i</sub> ~ LogNormal(log Σ, τ<sub>σ</sub>) | PSE ~ N(0, τ<sub>PSE</sub>) | log Σ ~ N(0, τ<sub>Σ</sub>) | all τ ~ half-Cauchy(0, 2.5) | – |
+| BH-GLM, non-centred | `Stan/example1_BHGLM_noncentred.stan` | | as BH-GLM | σ<sub>i</sub> = exp(log Σ + τ<sub>σ</sub> z<sub>i</sub>), z<sub>i</sub> ~ N(0, 1); same prior as BH-GLM | as BH-GLM | as BH-GLM | as BH-GLM | – |
+| BH-GLM (brms) | `R/example1_BHGLM_BHGNM_brms.R` | ✓ | intercept b<sub>0i</sub>, normal | slope b<sub>1i</sub>, normal | β<sub>0</sub> ~ N(0, 3) | β<sub>1</sub> ~ N(0, 3) | sd ~ half-Cauchy(0, 2.5); correlation ~ LKJ(2) | – |
+| BH-GLM, lognormal (brms) | `R/example1_BHGLM_brms_lognormal.R` | | as BH-GLM (Stan) | as BH-GLM (Stan) | as BH-GLM (Stan) | as BH-GLM (Stan) | as BH-GLM (Stan) | – |
+| BH-GNM | `Stan/example1_BHGNM.stan` | ✓ | μ<sub>i</sub> ~ N(M, τ<sub>μ</sub>) | σ<sub>i</sub> ~ LogNormal(log Σ, τ<sub>σ</sub>) | M ~ N(0, τ<sub>M</sub>) | log Σ ~ N(0, τ<sub>Σ</sub>) | all τ ~ half-Cauchy(0, 2.5) | γ<sub>i</sub> ~ U(0, 1), λ<sub>i</sub> ~ U(0, 1 − γ<sub>i</sub>) |
+| BH-GNM, half-normal | `Stan/example1_BHGNM_halfnormal.stan` | | μ<sub>i</sub> ~ N(M, τ<sub>μ</sub>) | σ<sub>i</sub> ~ N(Σ, τ<sub>σ</sub>), σ<sub>i</sub> > 0 | M ~ N(0, τ<sub>M</sub>) | Σ ~ half-N(0, τ<sub>Σ</sub>) | τ ~ half-Cauchy(0, 2.5); τ<sub>γ</sub>, τ<sub>λ</sub> ~ half-Cauchy(0, 0.5) | γ<sub>i</sub> ~ N(Γ, τ<sub>γ</sub>) on [0, 1], Γ ~ N(0.05, 0.1) on [0, 1]; same for λ |
+| BH-GNM (brms) | `R/example1_BHGLM_BHGNM_brms.R` | | μ<sub>i</sub>, normal | σ<sub>i</sub>, normal | μ ~ N(75, 50) | σ ~ half-N(0, 50) | sd ~ half-Cauchy(0, 2.5) | γ<sub>i</sub>, λ<sub>i</sub> ~ U(0, 1) |
+
+### Example 2: experimental data (`vibro_exp3`)
+
+| Model | File | Paper | Subject intercept | Subject slope | Population intercept | Population slope | Standard deviations | Guess γ / lapse λ |
+|---|---|:---:|---|---|---|---|---|---|
+| BH-GLM | `Stan/example2_BHGLM.stan` | ✓ | b<sub>0ih</sub> ~ N(β<sub>0h</sub>, τ<sub>b0</sub>) | b<sub>1ih</sub> ~ N(β<sub>1h</sub>, τ<sub>b1</sub>) | β<sub>0h</sub> ~ N(0, τ<sub>β0</sub>) | β<sub>1h</sub> ~ N(0, τ<sub>β1</sub>) | all τ ~ half-Cauchy(0, 2.5) | – |
+| BH-GNM | `Stan/example2_BHGNM.stan` | ✓ | as BH-GLM | as BH-GLM | as BH-GLM | as BH-GLM | as BH-GLM | γ<sub>ih</sub> ~ U(0, 1), λ<sub>ih</sub> ~ U(0, 1 − γ<sub>ih</sub>) |
+| BH-GLM, lognormal | `Stan/example2_BHGLM_lognormal.stan` | | b<sub>0ih</sub> ~ N(β<sub>0h</sub>, τ<sub>b0</sub>) | b<sub>1ih</sub> ~ LogNormal(log β<sub>1h</sub>, τ<sub>b1</sub>), non-centred | β<sub>0h</sub> ~ N(0, τ<sub>β0</sub>) | log β<sub>1h</sub> ~ N(0, τ<sub>β1</sub>) | τ<sub>b0</sub>, τ<sub>β0</sub> ~ half-N(0, 2.5); τ<sub>b1</sub>, τ<sub>β1</sub> ~ half-N(0, 1) | – |
 
 ---
 

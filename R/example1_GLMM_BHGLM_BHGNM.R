@@ -13,7 +13,8 @@
 #
 # Required packages: tidyverse, MixedPsy, lme4, lmerTest, DHARMa, rstan, shinystan
 # Stan models:       Stan/example1_BHGLM.stan, Stan/example1_BHGNM.stan
-#                    (alternative: Stan/example1_BHGNM_halfnormal.stan)
+#                    (alternatives: Stan/example1_BHGLM_noncentred.stan,
+#                     Stan/example1_BHGNM_halfnormal.stan)
 
 library(tidyverse)
 library(MixedPsy)
@@ -126,9 +127,27 @@ datistan$ncond  <- length(unique(datistan$condition))
 # Initialisation: starting the chains near plausible values (PSE ~ 90, sigma ~ 15)
 # improves mixing and reduces the warmup needed.
 # Chains: 3 chains, 3000 warmup + 2000 sampling iterations each.
+#
+# Non-centred alternative: Stan/example1_BHGLM_noncentred.stan fits the same
+# model (same priors, same posterior) with a non-centred parameterisation of
+# sigma_i (Eq. 28 in the paper), which usually converges better (fewer
+# divergent transitions). The output names are the same, so the code below
+# works unchanged. To use it, replace
+# init_fun with the one commented out below and set
+# file = "Stan/example1_BHGLM_noncentred.stan".
 # ---------------------------------------------------------------------------
 
 # BH-GLM ----
+# init_fun for the non-centred model Stan/example1_BHGLM_noncentred.stan:
+# z_scale = 0 starts every sigma_i at exp(log_SIGMA)
+# init_fun <- function(init_pse = 90, init_sigma = 15) {
+#   list(
+#     pse       = rep(init_pse, datistan$nsubj),
+#     z_scale   = rep(0, datistan$nsubj),
+#     log_SIGMA = log(init_sigma)
+#   )
+# }
+
 init_fun <- function(init_pse = 90, init_sigma = 15) {
   list(
     pse   = rep(init_pse,   datistan$nsubj),
