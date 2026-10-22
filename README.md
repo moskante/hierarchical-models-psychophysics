@@ -183,21 +183,21 @@ Prior distributions of all Bayesian hierarchical models. **Paper** marks the mod
 
 | Model | File | Paper | Subject location | Subject scale / slope | Population location | Population scale / slope | Standard deviations | Guess γ / lapse λ |
 |---|---|:---:|---|---|---|---|---|---|
-| BH-GLM | `Stan/example1_BHGLM.stan` | ✓ | pse<sub>i</sub> ~ N(PSE, τ<sub>pse</sub>) | σ<sub>i</sub> ~ LogNormal(log Σ, τ<sub>σ</sub>) | PSE ~ N(0, τ<sub>PSE</sub>) | log Σ ~ N(0, τ<sub>Σ</sub>) | all τ ~ half-Cauchy(0, 2.5) | – |
-| BH-GLM, non-centred | `Stan/example1_BHGLM_noncentred.stan` | | as BH-GLM | σ<sub>i</sub> = exp(log Σ + τ<sub>σ</sub> z<sub>i</sub>), z<sub>i</sub> ~ N(0, 1); same prior as BH-GLM | as BH-GLM | as BH-GLM | as BH-GLM | – |
-| BH-GLM (brms) | `R/example1_BHGLM_BHGNM_brms.R` | ✓ | intercept b<sub>0i</sub>, normal | slope b<sub>1i</sub>, normal | β<sub>0</sub> ~ N(0, 3) | β<sub>1</sub> ~ N(0, 3) | sd ~ half-Cauchy(0, 2.5); correlation ~ LKJ(2) | – |
-| BH-GLM, lognormal (brms) | `R/example1_BHGLM_brms_lognormal.R` | | as BH-GLM (Stan) | as BH-GLM (Stan) | as BH-GLM (Stan) | as BH-GLM (Stan) | as BH-GLM (Stan) | – |
-| BH-GNM | `Stan/example1_BHGNM.stan` | ✓ | μ<sub>i</sub> ~ N(M, τ<sub>μ</sub>) | σ<sub>i</sub> ~ LogNormal(log Σ, τ<sub>σ</sub>) | M ~ N(0, τ<sub>M</sub>) | log Σ ~ N(0, τ<sub>Σ</sub>) | all τ ~ half-Cauchy(0, 2.5) | γ<sub>i</sub> ~ U(0, 1), λ<sub>i</sub> ~ U(0, 1 − γ<sub>i</sub>) |
-| BH-GNM, half-normal | `Stan/example1_BHGNM_halfnormal.stan` | | μ<sub>i</sub> ~ N(M, τ<sub>μ</sub>) | σ<sub>i</sub> ~ N(Σ, τ<sub>σ</sub>), σ<sub>i</sub> > 0 | M ~ N(0, τ<sub>M</sub>) | Σ ~ half-N(0, τ<sub>Σ</sub>) | τ ~ half-Cauchy(0, 2.5); τ<sub>γ</sub>, τ<sub>λ</sub> ~ half-Cauchy(0, 0.5) | γ<sub>i</sub> ~ N(Γ, τ<sub>γ</sub>) on [0, 1], Γ ~ N(0.05, 0.1) on [0, 1]; same for λ |
-| BH-GNM (brms) | `R/example1_BHGLM_BHGNM_brms.R` | | μ<sub>i</sub>, normal | σ<sub>i</sub>, normal | μ ~ N(75, 50) | σ ~ half-N(0, 50) | sd ~ half-Cauchy(0, 2.5) | γ<sub>i</sub>, λ<sub>i</sub> ~ U(0, 1) |
+| BH-GLM | `Stan/example1_BHGLM.stan` | ✓ | pse<sub>i</sub>&nbsp;~&nbsp;N(PSE,&nbsp;τ<sub>pse</sub>) | σ<sub>i</sub>&nbsp;~&nbsp;LogNormal(log&nbsp;Σ,&nbsp;τ<sub>σ</sub>) | PSE&nbsp;~&nbsp;N(0,&nbsp;τ<sub>PSE</sub>) | log&nbsp;Σ&nbsp;~&nbsp;N(0,&nbsp;τ<sub>Σ</sub>) | all τ&nbsp;~&nbsp;half‑Cauchy(0,&nbsp;2.5) | – |
+| BH-GLM, non-centred | `Stan/example1_BHGLM_noncentred.stan` |  | as BH-GLM | σ<sub>i</sub>&nbsp;=&nbsp;exp(log&nbsp;Σ&nbsp;+&nbsp;τ<sub>σ</sub>&nbsp;z<sub>i</sub>), z<sub>i</sub>&nbsp;~&nbsp;N(0,&nbsp;1); same prior as BH-GLM | as BH-GLM | as BH-GLM | as BH-GLM | – |
+| BH-GLM (brms) | `R/example1_BHGLM_BHGNM_brms.R` | ✓ | intercept b<sub>0i</sub>, normal | slope b<sub>1i</sub>, normal | β<sub>0</sub>&nbsp;~&nbsp;N(0,&nbsp;3) | β<sub>1</sub>&nbsp;~&nbsp;N(0,&nbsp;3) | sd&nbsp;~&nbsp;half‑Cauchy(0,&nbsp;2.5); correlation&nbsp;~&nbsp;LKJ(2) | – |
+| BH-GLM, lognormal (brms) | `R/example1_BHGLM_brms_lognormal.R` |  | as BH-GLM (Stan) | as BH-GLM (Stan) | as BH-GLM (Stan) | as BH-GLM (Stan) | as BH-GLM (Stan) | – |
+| BH-GNM | `Stan/example1_BHGNM.stan` | ✓ | μ<sub>i</sub>&nbsp;~&nbsp;N(M,&nbsp;τ<sub>μ</sub>) | σ<sub>i</sub>&nbsp;~&nbsp;LogNormal(log&nbsp;Σ,&nbsp;τ<sub>σ</sub>) | M&nbsp;~&nbsp;N(0,&nbsp;τ<sub>M</sub>) | log&nbsp;Σ&nbsp;~&nbsp;N(0,&nbsp;τ<sub>Σ</sub>) | all τ&nbsp;~&nbsp;half‑Cauchy(0,&nbsp;2.5) | γ<sub>i</sub>&nbsp;~&nbsp;U(0,&nbsp;1), λ<sub>i</sub>&nbsp;~&nbsp;U(0,&nbsp;1&nbsp;−&nbsp;γ<sub>i</sub>) |
+| BH-GNM, half-normal | `Stan/example1_BHGNM_halfnormal.stan` |  | μ<sub>i</sub>&nbsp;~&nbsp;N(M,&nbsp;τ<sub>μ</sub>) | σ<sub>i</sub>&nbsp;~&nbsp;N(Σ,&nbsp;τ<sub>σ</sub>), σ<sub>i</sub>&nbsp;>&nbsp;0 | M&nbsp;~&nbsp;N(0,&nbsp;τ<sub>M</sub>) | Σ&nbsp;~&nbsp;half‑N(0,&nbsp;τ<sub>Σ</sub>) | τ&nbsp;~&nbsp;half‑Cauchy(0,&nbsp;2.5); τ<sub>γ</sub>, τ<sub>λ</sub>&nbsp;~&nbsp;half‑Cauchy(0,&nbsp;0.5) | γ<sub>i</sub>&nbsp;~&nbsp;N(Γ,&nbsp;τ<sub>γ</sub>) on [0,&nbsp;1], Γ&nbsp;~&nbsp;N(0.05,&nbsp;0.1) on [0,&nbsp;1]; same for λ |
+| BH-GNM (brms) | `R/example1_BHGLM_BHGNM_brms.R` |  | μ<sub>i</sub>, normal | σ<sub>i</sub>, normal | μ&nbsp;~&nbsp;N(75,&nbsp;50) | σ&nbsp;~&nbsp;half‑N(0,&nbsp;50) | sd&nbsp;~&nbsp;half‑Cauchy(0,&nbsp;2.5) | γ<sub>i</sub>, λ<sub>i</sub>&nbsp;~&nbsp;U(0,&nbsp;1) |
 
 ### Example 2: experimental data (`vibro_exp3`)
 
 | Model | File | Paper | Subject intercept | Subject slope | Population intercept | Population slope | Standard deviations | Guess γ / lapse λ |
 |---|---|:---:|---|---|---|---|---|---|
-| BH-GLM | `Stan/example2_BHGLM.stan` | ✓ | b<sub>0ih</sub> ~ N(β<sub>0h</sub>, τ<sub>b0</sub>) | b<sub>1ih</sub> ~ N(β<sub>1h</sub>, τ<sub>b1</sub>) | β<sub>0h</sub> ~ N(0, τ<sub>β0</sub>) | β<sub>1h</sub> ~ N(0, τ<sub>β1</sub>) | all τ ~ half-Cauchy(0, 2.5) | – |
-| BH-GNM | `Stan/example2_BHGNM.stan` | ✓ | as BH-GLM | as BH-GLM | as BH-GLM | as BH-GLM | as BH-GLM | γ<sub>ih</sub> ~ U(0, 1), λ<sub>ih</sub> ~ U(0, 1 − γ<sub>ih</sub>) |
-| BH-GLM, lognormal | `Stan/example2_BHGLM_lognormal.stan` | | b<sub>0ih</sub> ~ N(β<sub>0h</sub>, τ<sub>b0</sub>) | b<sub>1ih</sub> ~ LogNormal(log β<sub>1h</sub>, τ<sub>b1</sub>), non-centred | β<sub>0h</sub> ~ N(0, τ<sub>β0</sub>) | log β<sub>1h</sub> ~ N(0, τ<sub>β1</sub>) | τ<sub>b0</sub>, τ<sub>β0</sub> ~ half-N(0, 2.5); τ<sub>b1</sub>, τ<sub>β1</sub> ~ half-N(0, 1) | – |
+| BH-GLM | `Stan/example2_BHGLM.stan` | ✓ | b<sub>0ih</sub>&nbsp;~&nbsp;N(β<sub>0h</sub>,&nbsp;τ<sub>b0</sub>) | b<sub>1ih</sub>&nbsp;~&nbsp;N(β<sub>1h</sub>,&nbsp;τ<sub>b1</sub>) | β<sub>0h</sub>&nbsp;~&nbsp;N(0,&nbsp;τ<sub>β0</sub>) | β<sub>1h</sub>&nbsp;~&nbsp;N(0,&nbsp;τ<sub>β1</sub>) | all τ&nbsp;~&nbsp;half‑Cauchy(0,&nbsp;2.5) | – |
+| BH-GNM | `Stan/example2_BHGNM.stan` | ✓ | as BH-GLM | as BH-GLM | as BH-GLM | as BH-GLM | as BH-GLM | γ<sub>ih</sub>&nbsp;~&nbsp;U(0,&nbsp;1), λ<sub>ih</sub>&nbsp;~&nbsp;U(0,&nbsp;1&nbsp;−&nbsp;γ<sub>ih</sub>) |
+| BH-GLM, lognormal | `Stan/example2_BHGLM_lognormal.stan` |  | b<sub>0ih</sub>&nbsp;~&nbsp;N(β<sub>0h</sub>,&nbsp;τ<sub>b0</sub>) | b<sub>1ih</sub>&nbsp;~&nbsp;LogNormal(log&nbsp;β<sub>1h</sub>,&nbsp;τ<sub>b1</sub>), non-centred | β<sub>0h</sub>&nbsp;~&nbsp;N(0,&nbsp;τ<sub>β0</sub>) | log&nbsp;β<sub>1h</sub>&nbsp;~&nbsp;N(0,&nbsp;τ<sub>β1</sub>) | τ<sub>b0</sub>, τ<sub>β0</sub>&nbsp;~&nbsp;half‑N(0,&nbsp;2.5); τ<sub>b1</sub>, τ<sub>β1</sub>&nbsp;~&nbsp;half‑N(0,&nbsp;1) | – |
 
 ---
 
