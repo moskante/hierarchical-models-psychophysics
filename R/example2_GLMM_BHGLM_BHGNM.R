@@ -267,6 +267,8 @@ hyperparameters_bhgnm <- summary(fit_bhgnm_vibro)$summary %>%
 
 # ============================================================================
 # Model plot: Differences in PSE, JND, and Slope across models
+# Warning: PSE and JND are not corrected for lambda and gamma. Refer to example 1 
+# for the corrected parameter estimates
 # ============================================================================
 
 # 1. Clean and format GLMM data
