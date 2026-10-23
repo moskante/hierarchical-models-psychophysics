@@ -105,7 +105,7 @@ model {
   // Full Hierarchical Structure (with safe bounding via T[0, 1])
   for (i in 1:nsubj) {
     mu[i] ~ normal(MU, tau_mu);
-    sigma[i] ~ normal(SIGMA, tau_sigma);
+    sigma[i] ~ normal(SIGMA, tau_sigma) T[0, ];
     
     gamma[i] ~ normal(GAMMA, tau_gamma) T[0, 1];
     lambda_raw[i] ~ normal(LAMBDA_tilde, tau_lambda_raw) T[0, 1];
